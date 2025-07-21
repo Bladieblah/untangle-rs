@@ -1,11 +1,11 @@
 [package]
-name = "untangle-rs"
+name = "untanglers"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
-name = "untangle-rs"
+name = "untanglers"
 crate-type = ["cdylib"]
 
 [dependencies]
