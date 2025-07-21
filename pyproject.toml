@@ -1,0 +1,31 @@
+[project]
+name = "untangle-rs"
+dynamic = ["version"]
+description = "Library that minimises edge crossings in a hierarchical multipartite graph"
+authors = [
+    {name = "Matthijs Wesseling",email = "matthijswesseling@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "maturin (>=1.9.1,<2.0.0)"
+]
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+
+[tool.poetry]
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.12.4"
+pytest = "^8.4.1"
+
+[build-system]
+requires = ["maturin>=1.9,<2.0"]
+build-backend = "maturin"
