@@ -10,7 +10,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 env_logger = "0.11.8"
-hashbrown = "0.15.4"
 itertools = "0.14.0"
 log = "0.4.27"
 pyo3 = "0.25.0"

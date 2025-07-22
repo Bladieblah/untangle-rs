@@ -9,12 +9,12 @@ fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
 }
 
 #[pyclass]
-struct PyCrossings {
+struct Crossings {
   inner: crossings::Crossings<String>,
 }
 
 #[pymethods]
-impl PyCrossings {
+impl Crossings {
   #[new]
   pub fn crossings_new(nodes_left: Vec<String>, nodes_right: Vec<String>, edges: Vec<(String, String, usize)>) -> Self {
     let inner = crossings::Crossings::<String>::new(nodes_left, nodes_right, edges);
@@ -28,13 +28,17 @@ impl PyCrossings {
   pub fn get_nodes(&self) -> (Vec<String>, Vec<String>) {
     self.inner.get_nodes()
   }
+
+  pub fn count_crossings(&self) -> usize {
+    self.inner.count_crossings()
+  }
 }
 
 /// A Python module implemented in Rust.
 #[pymodule]
 mod untanglers {
   #[pymodule_export]
-  use crate::PyCrossings;
+  use crate::Crossings;
 
   #[pymodule_export]
   use crate::sum_as_string;
