@@ -1,12 +1,15 @@
 // use rand::random;
 // use std::collections::{HashMap, HashSet};
+use itertools::Itertools;
+use rand::random;
+use std::collections::HashMap;
 use std::hash::Hash;
 
-use std::collections::HashMap;
-use itertools::Itertools;
-
 // #[derive(Clone)]
-pub struct Crossings<T> where T: Eq + Hash + Clone {
+pub struct Crossings<T>
+where
+  T: Eq + Hash + Clone,
+{
   ids_left: Vec<T>,
   ids_right: Vec<T>,
   left: Vec<usize>,
@@ -14,24 +17,24 @@ pub struct Crossings<T> where T: Eq + Hash + Clone {
   edges: Vec<(usize, usize, usize)>,
   size_left: usize,
   size_right: usize,
-  edge_count: usize,
 }
 
-impl<T> Crossings<T> where T: Eq + Hash + Clone {
+impl<T> Crossings<T>
+where
+  T: Eq + Hash + Clone,
+{
   // Static methods
 
-  fn invert_vec<U>(v: &Vec<U>) -> HashMap<&U, usize> where U: Eq + Hash + Clone {
-    v
-      .iter()
-      .enumerate()
-      .map(|(i, item)| (item, i))
-      .collect()
+  fn invert_vec<U>(v: &[U]) -> HashMap<&U, usize>
+  where
+    U: Eq + Hash + Clone,
+  {
+    v.iter().enumerate().map(|(i, item)| (item, i)).collect()
   }
 
   pub fn new(ids_left: Vec<T>, ids_right: Vec<T>, edges: Vec<(T, T, usize)>) -> Self {
     let size_left = ids_left.len();
     let size_right = ids_right.len();
-    let edge_count = edges.len();
 
     let left = (0..size_left).collect_vec();
     let right = (0..size_right).collect_vec();
@@ -39,7 +42,10 @@ impl<T> Crossings<T> where T: Eq + Hash + Clone {
     let index_left = Self::invert_vec(&ids_left);
     let index_right = Self::invert_vec(&ids_right);
 
-    let mapped_edges = edges.iter().map(|(l, r, w)| (index_left[l], index_right[r], *w)).collect_vec();
+    let mapped_edges = edges
+      .iter()
+      .map(|(l, r, w)| (index_left[l], index_right[r], *w))
+      .collect_vec();
 
     let this = Self {
       ids_left,
@@ -49,14 +55,12 @@ impl<T> Crossings<T> where T: Eq + Hash + Clone {
       edges: mapped_edges,
       size_left,
       size_right,
-      edge_count,
     };
 
     log::debug!("Counted {} edge crossings.", this.count_crossings());
 
     this
   }
-
 
   // Instance methods
 
@@ -80,7 +84,8 @@ impl<T> Crossings<T> where T: Eq + Hash + Clone {
     let (index_left, index_right) = self.get_node_indices();
 
     // Step 1
-    let mut edges: Vec<(usize, usize, &usize)> = self.edges
+    let mut edges: Vec<(usize, usize, &usize)> = self
+      .edges
       .iter()
       .map(|(l, r, w)| (index_left[l], index_right[r], w))
       .collect();
@@ -109,7 +114,7 @@ impl<T> Crossings<T> where T: Eq + Hash + Clone {
    *    a. If B comes AFTER A then for each edge coming from A, then it crosses all edges from B that have a SMALLER right index
    *    b. If B comes BEFORE B then for each edge coming from A, then it crosses all edges from B that have a GREATER right index
    */
-  pub fn count_pair_crossings(&self) -> HashMap<(usize, usize), (usize, usize)> {
+  pub fn count_pair_crossings(&self) -> HashMap<(usize, usize), i64> {
     // Convert edges to a sparse matrix representation
     // <left_index, <right_index, weight>>
     let mut weights = HashMap::<&usize, HashMap<usize, usize>>::new();
@@ -129,7 +134,7 @@ impl<T> Crossings<T> where T: Eq + Hash + Clone {
         cumulative_weight_f[i] += cumulative_weight_f[i - 1] + value.get(&(i - 1)).unwrap_or(&0_usize);
       }
       cumulative_weights_f.insert(left, cumulative_weight_f);
-      
+
       let mut cumulative_weight_b = vec![0; self.size_right];
       for i in (0..self.size_right).rev() {
         cumulative_weight_b[i] += cumulative_weight_b[i + 1] + value.get(&(i + 1)).unwrap_or(&0_usize);
@@ -139,73 +144,68 @@ impl<T> Crossings<T> where T: Eq + Hash + Clone {
 
     // Step 2.
     // This cartesion product only works because the constructor assigns consecutive ids
-    let mut pair_crossings = HashMap::<(usize, usize), (usize, usize)>::new();
+    let mut pair_crossings = HashMap::<(usize, usize), i64>::new();
     for (node_a, node_b) in (0..self.size_left).cartesian_product(0..self.size_left) {
-      if node_a == node_b { continue; }
+      if node_a == node_b {
+        continue;
+      }
 
       // The crossings tuple contains the count in orders (A, B) and (B, A) respectively.
       let mut crossings = (0_usize, 0_usize);
-      match (weights.get(&node_a), cumulative_weights_f.get_mut(&node_b), cumulative_weights_b.get_mut(&node_b)) {
-        (Some(weigths_a), Some(c_weights_b), Some(c_weights_f)) => {
-          for j in 0..self.size_right {
-            match weigths_a.get(&j) {
-              Some(w_a) => {
-                // c_weights_f and c_weights_b are excluding node j itself, see step 1.
-                crossings.0 += w_a * c_weights_f[j]; // 2a. 
-                crossings.1 += w_a * c_weights_b[j]; // 2b.
-              }
-              None => {}
-            }
+      if let (Some(weigths_a), Some(c_weights_b), Some(c_weights_f)) = (
+        weights.get(&node_a),
+        cumulative_weights_f.get_mut(&node_b),
+        cumulative_weights_b.get_mut(&node_b),
+      ) {
+        for j in 0..self.size_right {
+          if let Some(w_a) = weigths_a.get(&j) {
+            // c_weights_f and c_weights_b are excluding node j itself, see step 1.
+            crossings.0 += w_a * c_weights_f[j]; // 2a.
+            crossings.1 += w_a * c_weights_b[j]; // 2b.
           }
         }
-        _ => {}
       }
 
       // The crossings counts are anti-symmetric of course
-      pair_crossings.insert((node_a, node_b), crossings.clone());
-      pair_crossings.insert((node_b, node_a), (crossings.1, crossings.0));
+      // Treat the amount of crossings as energy, so their difference represents a potential energy
+      let contribution = (crossings.0 as i64) - (crossings.1 as i64);
+      pair_crossings.insert((node_a, node_b), contribution);
+      pair_crossings.insert((node_b, node_a), -contribution);
     }
-    
+
     pair_crossings
   }
 
-  pub fn swap_neighbours(&mut self, max_iterations: usize) {
-    // let mut est = self.count_crossings();
-    // log::info!("START swapping edges, {est} crossings");
-    // if est == 0 {
-    //     return;
-    // }
+  pub fn swap_neighbours(&mut self, max_iterations: usize, temperature: f64) {
+    let mut crossings = self.count_crossings() as i64;
+    log::info!("START swapping nodes, currently {crossings} crossings");
+    if crossings > 0 {
+      let pair_crossings: HashMap<(usize, usize), i64> = self.count_pair_crossings();
 
-    // let pc = self.count_pair_crossings();
-    // for _ in 0..max_iterations {
-    //     for j in 0..self.swap_iter_endpoint {
-    //         if self.bounds_left.contains(&j) {
-    //             continue;
-    //         }
-    //         let (a, b) = (self.left[j].clone(), self.left[j + 1].clone());
-    //         let (keep, swap) = pc[&(a.clone(), b.clone())];
-    //         if swap < keep || (swap == keep && random::<f32>() < 0.3) {
-    //             self.left.swap(j, j + 1);
-    //             est += swap - keep;
-    //         }
-    //     }
-    //     if est == 0 {
-    //         break;
-    //     }
-    // }
-    // log::info!("Done swapping edges, {est} crossings left.");
+      for _ in 0..max_iterations {
+        for j in 0..self.size_left - 1 {
+          let pair = (self.left[j], self.left[j + 1]);
+          let contribution = pair_crossings[&pair];
+          if contribution > 0 || ((contribution as f64) / temperature).exp() > random::<f64>() {
+            self.left[j] = pair.0;
+            self.left[j + 1] = pair.1;
+            crossings -= contribution;
+          }
+        }
+
+        if crossings == 0 {
+          break;
+        }
+      }
+    }
+
+    log::info!("END swapping nodes at {crossings} crossings");
   }
-}
 
-fn main() {
-  // optional demo
-  env_logger::init();
-  let left = (0..6).collect::<Vec<_>>();
-  let right = (0..2).collect::<Vec<_>>();
-  let edges = vec![(0, 0, 54), (0, 1, 35), (1, 0, 37), (1, 1, 16), (2, 0, 15), (2, 1, 16), (3, 1, 121), (4, 1, 61)];
-
-  let mut opt = Crossings::new(left, right, edges);
-  opt.swap_neighbours(100);
-  println!("{:?}", opt.left);
-  println!("{:?}", opt.right);
+  pub fn get_nodes(&self) -> (Vec<T>, Vec<T>) {
+    (
+      self.left.iter().map(|l| self.ids_left[*l].clone()).collect_vec(),
+      self.right.iter().map(|r| self.ids_right[*r].clone()).collect_vec(),
+    )
+  }
 }

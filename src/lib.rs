@@ -5,12 +5,37 @@ mod crossings;
 /// Formats the sum of two numbers as string.
 #[pyfunction]
 fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
+  Ok((a + b).to_string())
+}
+
+#[pyclass]
+struct PyCrossings {
+  inner: crossings::Crossings<String>,
+}
+
+#[pymethods]
+impl PyCrossings {
+  #[new]
+  pub fn crossings_new(nodes_left: Vec<String>, nodes_right: Vec<String>, edges: Vec<(String, String, usize)>) -> Self {
+    let inner = crossings::Crossings::<String>::new(nodes_left, nodes_right, edges);
+    Self { inner }
+  }
+
+  pub fn run_swap(&mut self, max_iterations: usize, temperature: f64) {
+    self.inner.swap_neighbours(max_iterations, temperature);
+  }
+
+  pub fn get_nodes(&self) -> (Vec<String>, Vec<String>) {
+    self.inner.get_nodes()
+  }
 }
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn untanglers(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
-    Ok(())
+mod untanglers {
+  #[pymodule_export]
+  use crate::PyCrossings;
+
+  #[pymodule_export]
+  use crate::sum_as_string;
 }
