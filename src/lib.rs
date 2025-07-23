@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 
-mod crossings;
+pub mod crossings;
+pub mod utils;
 
 /// Formats the sum of two numbers as string.
 #[pyfunction]
@@ -21,8 +22,8 @@ impl Crossings {
     Self { inner }
   }
 
-  pub fn run_swap(&mut self, max_iterations: usize, temperature: f64) {
-    self.inner.swap_neighbours(max_iterations, temperature);
+  pub fn swap_nodes(&mut self, max_iterations: usize, temperature: f64) {
+    self.inner.swap_nodes(max_iterations, temperature);
   }
 
   pub fn get_nodes(&self) -> (Vec<String>, Vec<String>) {

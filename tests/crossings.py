@@ -30,7 +30,7 @@ class Crossings(Generic[T]):
         try:
             edges = sorted((index_left[l], index_right[r], w) for l, r, w in self.edges)
         except:
-            print(self.edges)
+            # print(self.edges)
             raise
         weights = [0] * len(self.right)
         crossings = 0

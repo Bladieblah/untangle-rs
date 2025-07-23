@@ -13,7 +13,7 @@ class TestUntangleRs:
 
         rs_crossings = untanglers.Crossings(nodes_left, nodes_right, edges)
         assert rs_crossings.count_crossings() == 2
-        rs_crossings.run_swap(10, 0)
+        rs_crossings.swap_nodes(10, 0)
         assert rs_crossings.count_crossings() == 0
 
 
