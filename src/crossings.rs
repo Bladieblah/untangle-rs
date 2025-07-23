@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::hash::Hash;
 
+use crate::utils::matmul;
+
 // #[derive(Clone)]
 pub struct Crossings<T>
 where
@@ -78,6 +80,8 @@ where
    *    a. A new edge crosses every existing edge that has a GREATER right node index (computed using a cumulative sum)
    *    b. The weights are counted multiplicatively (left as an exercise to the reader)
    *    c. Keep track of the number of edges that reach each right node
+   *
+   * Could likely be further optimised but nowhere near being a bottleneck
    */
   pub fn count_crossings(&self) -> usize {
     let (index_left, index_right) = self.get_node_indices();
@@ -112,73 +116,56 @@ where
    *  2. For each pair of nodes (A, B) on the left side, count their contribution in both orders
    *    a. If B comes AFTER A then for each edge coming from A, then it crosses all edges from B that have a SMALLER right index
    *    b. If B comes BEFORE B then for each edge coming from A, then it crosses all edges from B that have a GREATER right index
+   *
+   * Step 2 can be done with a beautiful matrix product:
+   * - PC[A, B] = Sum_j {W[A, j] * Cf[B, j]} - Sum_j {W[A, j] * Cb[B, j]}
+   * - PC = W * Cf^T - W * Cb^T
+   * - PC = W * (Cf - Cb)^T := W * C^T
+   * - PC^T = C * W^T
    */
-  pub fn count_pair_crossings(&self) -> Vec<i64> {
-    // Convert edges to a matrix representation
-    let mut weights: Vec<usize> = vec![0; self.size_left * self.size_right];
+  pub fn count_pair_crossings(&self) -> Vec<f64> {
+    let mut weights: Vec<f64> = vec![0.; self.size_left * self.size_right];
     for (left, right, weight) in &self.edges {
-      weights[left * self.size_right + right] = *weight;
+      weights[right * self.size_left + left] = *weight as f64;
     }
 
     // Step 1.
     // These sumulative sums are EXCLUSIVE so the computation in step 2 is simpler.
-    let mut cumulative_weights_f: Vec<usize> = vec![0; self.size_left * self.size_right];
-    let mut cumulative_weights_b: Vec<usize> = vec![0; self.size_left * self.size_right];
-    let mut cumulative_weights: Vec<i64> = vec![0; self.size_left * self.size_right];
+    let mut cumulative_weights_f: Vec<f64> = vec![0.; self.size_left * self.size_right];
+    let mut cumulative_weights_b: Vec<f64> = vec![0.; self.size_left * self.size_right];
+    let mut cumulative_weights: Vec<f64> = vec![0.; self.size_left * self.size_right];
 
+    // TODO: Simplify
     for left in 0..self.size_left {
       for right in 1..self.size_right {
         let index = left * self.size_right + right;
-        cumulative_weights_f[index] = cumulative_weights_f[index - 1] + weights[index - 1];
+        let index_w = (right - 1) * self.size_left + left;
+        cumulative_weights_f[index] = cumulative_weights_f[index - 1] + weights[index_w];
       }
 
       for right in (0..self.size_right - 1).rev() {
         let index = left * self.size_right + right;
-        cumulative_weights_b[index] = cumulative_weights_b[index + 1] + weights[index + 1];
+        let index_w = (right + 1) * self.size_left + left;
+        cumulative_weights_b[index] = cumulative_weights_b[index + 1] + weights[index_w];
       }
 
       for right in (0..self.size_right).rev() {
         let index = left * self.size_right + right;
-        cumulative_weights[index] = cumulative_weights_f[index] as i64 - cumulative_weights_b[index] as i64;
+        cumulative_weights[index] = cumulative_weights_f[index] - cumulative_weights_b[index];
       }
     }
 
     // Step 2.
     // This cartesion product only works because the constructor assigns consecutive ids
-    let mut pair_crossings: Vec<i64> = vec![0; self.size_left * self.size_left];
-
-    // let foo = "PC[A, B] = Sum_j {W[A, j] * Cf[B, j]} - Sum_j {W[A, j] * Cb[B, j]}";
-    // let foo = "PC[A, B] = W * Cf^T - W * Cb*T";
-    // let foo = "PC[A, B] = W * (Cf^T - Cb*T)";
-
-    for node_a in 0..self.size_left {
-      for node_b in node_a + 1..self.size_left {
-        if node_a == node_b {
-          continue;
-        }
-
-        let index_a = self.size_right * node_a;
-        let index_b = self.size_left * node_b;
-
-        // The crossings tuple contains the count in orders (A, B) and (B, A) respectively.
-        // let mut crossings = (0_usize, 0_usize);
-        let mut contribution = 0_i64;
-
-        for j in 0..self.size_right {
-          // crossings.0 += weights[index_a + j] * cumulative_weights_f[index_b + j]; // 2a.
-          // crossings.1 += weights[index_a + j] * cumulative_weights_b[index_b + j];
-          contribution += weights[index_a + j] as i64 * cumulative_weights[index_b + j];
-          // 2b.
-        }
-
-        // The crossings counts are anti-symmetric of course
-        // Treat the amount of crossings as energy, so their difference represents a potential energy
-        // let contribution = (crossings.0 as i64) - (crossings.1 as i64);
-        // assert_eq!(test, contribution);
-        pair_crossings[node_a * self.size_left + node_b] = contribution;
-        pair_crossings[node_b * self.size_left + node_a] = -contribution;
-      }
-    }
+    let mut pair_crossings: Vec<f64> = vec![0.; self.size_left * self.size_left];
+    matmul(
+      &cumulative_weights,
+      &weights,
+      &mut pair_crossings,
+      self.size_left,
+      self.size_right,
+      self.size_left,
+    );
 
     pair_crossings
   }
@@ -188,17 +175,17 @@ where
     self._swap_nodes(max_iterations, temperature, &self.count_pair_crossings());
   }
 
-  pub fn _swap_nodes(&mut self, max_iterations: usize, temperature: f64, pair_crossings: &[i64]) {
+  pub fn _swap_nodes(&mut self, max_iterations: usize, temperature: f64, pair_crossings: &[f64]) {
     let mut crossings = self.count_crossings() as i64;
     if crossings > 0 {
       for _ in 0..max_iterations {
         for j in 0..self.size_left - 1 {
           let (node_a, node_b) = (self.left[j], self.left[j + 1]);
-          let contribution = pair_crossings[node_a * self.size_left + node_b];
-          if contribution > 0 || ((contribution as f64 - 1.) / temperature).exp() > random::<f64>() {
+          let contribution = pair_crossings[node_b * self.size_left + node_a];
+          if contribution > 0. || ((contribution - 1.) / temperature).exp() > random::<f64>() {
             self.left[j] = node_b;
             self.left[j + 1] = node_a;
-            crossings -= contribution;
+            crossings -= contribution as i64;
           }
         }
 
@@ -221,6 +208,18 @@ where
 mod tests {
   use super::*;
   use crate::utils::*;
+
+  #[test]
+  fn test_pairwise_matrix() {
+    env_logger::init();
+    let nodes_left: Vec<u8> = vec![0, 1, 2, 10];
+    let nodes_right: Vec<u8> = vec![3, 4, 5];
+    let edges: Vec<(u8, u8, usize)> = vec![(0, 5, 1), (1, 5, 2), (2, 4, 3)];
+    let crossings = Crossings::<u8>::new(nodes_left.clone(), nodes_right.clone(), edges);
+
+    let expected: Vec<f64> = vec![0., 0., -3., 0., 0., 0., -6., 0., 3., 6., 0., 0., 0., 0., 0., 0.];
+    assert_eq!(crossings.count_pair_crossings(), expected);
+  }
 
   #[test]
   fn test_simple_graph() {

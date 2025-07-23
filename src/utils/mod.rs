@@ -1,6 +1,8 @@
 use itertools::Itertools;
+use matrixmultiply::dgemm;
 use rand::seq::SliceRandom;
 use rand::Rng;
+use std::fmt::Display;
 use std::time::Instant;
 
 pub fn timeit<F, R>(label: &str, f: F) -> R
@@ -44,4 +46,44 @@ pub fn generate_graph(n_nodes: i32) -> GraphType {
   nodes_right.shuffle(&mut rng);
 
   (nodes_left, nodes_right, edges)
+}
+
+pub fn matmul(matrix_a: &[f64], matrix_b: &[f64], matrix_c: &mut [f64], m: usize, k: usize, n: usize) {
+  unsafe {
+    dgemm(
+      m,
+      k,
+      n,
+      1.0,
+      matrix_a.as_ptr(),
+      k as isize,
+      1,
+      matrix_b.as_ptr(),
+      n as isize,
+      1,
+      0.0,
+      matrix_c.as_mut_ptr(),
+      n as isize,
+      1,
+    )
+  }
+}
+
+#[allow(dead_code)]
+pub fn print_matrix<T>(mat: &[T], rows: usize, cols: usize)
+where
+  T: Display,
+{
+  let top = format!("┌{}┐", "────────".repeat(cols));
+  let bottom = format!("└{}┘", "────────".repeat(cols));
+
+  println!("{top}");
+  for i in 0..rows {
+    print!("│");
+    for j in 0..cols {
+      print!("{:>7.2} ", mat[i * cols + j]);
+    }
+    println!("│");
+  }
+  println!("{bottom}");
 }

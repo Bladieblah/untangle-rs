@@ -17,6 +17,10 @@ test-python: release ## Run the tests
 
 test: test-rust test-python
 
+benchmark: release ## Run a benchmark to compare the original python implementation with the optimised rust implementation
+	cargo run --release
+	python -m tests.benchmark
+
 lint: ## Run linting
 	cargo fmt --all
 	cargo clippy --fix --allow-dirty

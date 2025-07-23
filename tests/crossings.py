@@ -99,3 +99,20 @@ class Crossings(Generic[T]):
           est_crossings += swap - keep
       if est_crossings == 0:
         break
+
+
+if __name__ == "__main__":
+  left = [0, 1, 2, 10]
+  right = [3, 4, 5]
+  edges = [(0, 5, 1), (1, 5, 2), (2, 4, 3)]
+  c = Crossings(left, right, edges)
+
+  mat = [[0 for _ in range(c.size_left)] for _ in range(c.size_left)]
+
+  for (a, b), (x, y) in c.count_pair_crossings().items():
+    mat[left.index(a)][left.index(b)] = x - y
+
+  for row in mat:
+    for col in row:
+      print("{:>7.2} ".format(float(col)), end="")
+    print()
