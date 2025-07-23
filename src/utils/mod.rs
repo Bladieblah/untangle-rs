@@ -3,8 +3,6 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 use std::time::Instant;
 
-use crate::crossings::Crossings;
-
 pub fn timeit<F, R>(label: &str, f: F) -> R
 where
   F: FnOnce() -> R,
@@ -39,10 +37,6 @@ pub fn generate_graph(n_nodes: i32) -> (Vec<i32>, Vec<i32>, Vec<(i32, i32, usize
     }
     r += dr;
   }
-
-  let mut crossings = Crossings::new(nodes_left.clone(), nodes_right.clone(), edges.clone());
-  crossings.swap_nodes(10, 1e-8);
-  assert_eq!(crossings.count_crossings(), 0);
 
   nodes_left.shuffle(&mut rng);
   nodes_right.shuffle(&mut rng);

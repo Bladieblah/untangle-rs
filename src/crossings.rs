@@ -71,7 +71,7 @@ where
   }
 
   /**
-   * Counts the number of edge crossings in a bipartite graph. This can be done in E * ln E time where E is the number of edges.
+   * Counts the number of edge crossings in a bipartite graph. This can be done in R * E * ln E time where E is the number of edges.
    * This approach only works if there is at most 1 edge per node-pair. The process works as follows:
    *  1. Sort the edges ascending by their <left node index>, <right node index>
    *  2. Iterate through the sorted edges
@@ -169,6 +169,7 @@ where
     pair_crossings
   }
 
+  #[allow(dead_code)]
   pub fn swap_nodes(&mut self, max_iterations: usize, temperature: f64) {
     self._swap_nodes(max_iterations, temperature, &self.count_pair_crossings());
   }
