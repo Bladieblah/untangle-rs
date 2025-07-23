@@ -14,7 +14,9 @@ where
   result
 }
 
-pub fn generate_graph(n_nodes: i32) -> (Vec<i32>, Vec<i32>, Vec<(i32, i32, usize)>) {
+type GraphType = (Vec<i32>, Vec<i32>, Vec<(i32, i32, usize)>);
+
+pub fn generate_graph(n_nodes: i32) -> GraphType {
   let mut nodes_left = (0..n_nodes).collect_vec();
   let mut nodes_right = (0..n_nodes).collect_vec();
   let mut edges = Vec::<(i32, i32, usize)>::new();

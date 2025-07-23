@@ -1,11 +1,12 @@
 from typing import List, Tuple
 
-
 class Crossings:
-  def __init__(self, nodes_left: List[str], nodes_right: List[str], edges: List[Tuple[str, str, int]]): ...
-
+  def __init__(
+    self,
+    nodes_left: List[str],
+    nodes_right: List[str],
+    edges: List[Tuple[str, str, int]],
+  ): ...
   def swap_nodes(self, max_iterations: int, temperature: float) -> None: ...
-
   def get_nodes(self) -> Tuple[List[str], List[str]]: ...
-
   def count_crossings(self) -> int: ...

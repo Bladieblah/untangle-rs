@@ -124,6 +124,7 @@ where
     // These sumulative sums are EXCLUSIVE so the computation in step 2 is simpler.
     let mut cumulative_weights_f: Vec<usize> = vec![0; self.size_left * self.size_right];
     let mut cumulative_weights_b: Vec<usize> = vec![0; self.size_left * self.size_right];
+    let mut cumulative_weights: Vec<i64> = vec![0; self.size_left * self.size_right];
 
     for left in 0..self.size_left {
       for right in 1..self.size_right {
@@ -135,36 +136,49 @@ where
         let index = left * self.size_right + right;
         cumulative_weights_b[index] = cumulative_weights_b[index + 1] + weights[index + 1];
       }
+
+      for right in (0..self.size_right).rev() {
+        let index = left * self.size_right + right;
+        cumulative_weights[index] = cumulative_weights_f[index] as i64 - cumulative_weights_b[index] as i64;
+      }
     }
 
     // Step 2.
     // This cartesion product only works because the constructor assigns consecutive ids
-    // let mut pair_crossings = HashMap::<(usize, usize), i64>::new();
     let mut pair_crossings: Vec<i64> = vec![0; self.size_left * self.size_left];
-    // for (node_a, node_b) in (0..self.size_left).cartesian_product(0..self.size_left) {
+
+    // let foo = "PC[A, B] = Sum_j {W[A, j] * Cf[B, j]} - Sum_j {W[A, j] * Cb[B, j]}";
+    // let foo = "PC[A, B] = W * Cf^T - W * Cb*T";
+    // let foo = "PC[A, B] = W * (Cf^T - Cb*T)";
+
     for node_a in 0..self.size_left {
-    for node_b in 0..self.size_left {
-      if node_a == node_b {
-        continue;
+      for node_b in node_a + 1..self.size_left {
+        if node_a == node_b {
+          continue;
+        }
+
+        let index_a = self.size_right * node_a;
+        let index_b = self.size_left * node_b;
+
+        // The crossings tuple contains the count in orders (A, B) and (B, A) respectively.
+        // let mut crossings = (0_usize, 0_usize);
+        let mut contribution = 0_i64;
+
+        for j in 0..self.size_right {
+          // crossings.0 += weights[index_a + j] * cumulative_weights_f[index_b + j]; // 2a.
+          // crossings.1 += weights[index_a + j] * cumulative_weights_b[index_b + j];
+          contribution += weights[index_a + j] as i64 * cumulative_weights[index_b + j];
+          // 2b.
+        }
+
+        // The crossings counts are anti-symmetric of course
+        // Treat the amount of crossings as energy, so their difference represents a potential energy
+        // let contribution = (crossings.0 as i64) - (crossings.1 as i64);
+        // assert_eq!(test, contribution);
+        pair_crossings[node_a * self.size_left + node_b] = contribution;
+        pair_crossings[node_b * self.size_left + node_a] = -contribution;
       }
-
-      let index_a = self.size_right * node_a;
-      let index_b = self.size_left * node_b;
-
-      // The crossings tuple contains the count in orders (A, B) and (B, A) respectively.
-      let mut crossings = (0_usize, 0_usize);
-      
-      for j in 0..self.size_right {
-        crossings.0 += weights[index_a + j] * cumulative_weights_f[index_b + j]; // 2a.
-        crossings.1 += weights[index_a + j] * cumulative_weights_b[index_b + j]; // 2b.
-      }
-
-      // The crossings counts are anti-symmetric of course
-      // Treat the amount of crossings as energy, so their difference represents a potential energy
-      let contribution = (crossings.0 as i64) - (crossings.1 as i64);
-      pair_crossings[node_a * self.size_left + node_b] = contribution;
-      pair_crossings[node_b * self.size_left + node_a] = -contribution;
-    }}
+    }
 
     pair_crossings
   }
@@ -174,7 +188,7 @@ where
     self._swap_nodes(max_iterations, temperature, &self.count_pair_crossings());
   }
 
-  pub fn _swap_nodes(&mut self, max_iterations: usize, temperature: f64, pair_crossings: &Vec<i64>) {
+  pub fn _swap_nodes(&mut self, max_iterations: usize, temperature: f64, pair_crossings: &[i64]) {
     let mut crossings = self.count_crossings() as i64;
     if crossings > 0 {
       for _ in 0..max_iterations {
@@ -222,14 +236,14 @@ mod tests {
 
   #[test]
   fn test_difficult_graph() {
-    let n = 20;
+    let n = 50;
     let (nodes_left, nodes_right, edges) = generate_graph(n);
 
     let mut crossings = Crossings::new(nodes_left, nodes_right, edges);
     let start_crossings = crossings.count_crossings();
     let mut temp = 10.;
     let delta_t = 0.5;
-    let max_iterations = 100000;
+    let max_iterations = 1000;
     let k = 10;
     for _ in 0..k {
       timeit("crossings", || crossings.swap_nodes(max_iterations, temp));

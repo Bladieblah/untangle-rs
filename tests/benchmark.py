@@ -21,21 +21,22 @@ class Benchmark:
 
     edges = []
 
-    l, r = 0, 0
+    left, right = 0, 0
     k = 4
 
-    while l < size - k - 4 and r < size - k - 4:
-      dl = random.randint(1, k) # randint is inclusive
+    while left < size - k - 4 and right < size - k - 4:
+      dl = random.randint(1, k)  # randint is inclusive
       for i in range(dl):
-        edges.append((str(l), str(r + i + 1), 1))
-      l += dl
+        edges.append((str(left), str(right + i + 1), 1))
+      left += dl
 
       dr = random.randint(1, k)
       for i in range(dr):
-        edges.append((str(l + i + 1), str(r), 1))
-      r += dr
-    
+        edges.append((str(left + i + 1), str(right), 1))
+      right += dr
+
     from .crossings import Crossings
+
     c = Crossings(nodes_left, nodes_right, edges)
     logger.info(f"Sanity check: {c.count_crossings()} crossings")
 
@@ -53,6 +54,7 @@ class Benchmark:
   def check_rust(self, nodes_left, nodes_right, edges):
     crossings = untanglers.Crossings(nodes_left, nodes_right, edges)
     crossings.swap_nodes(self.max_iterations, self.temperature)
+
 
 if __name__ == "__main__":
   Benchmark(10000, 1)
