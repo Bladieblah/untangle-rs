@@ -24,7 +24,7 @@ class Benchmark:
     l, r = 0, 0
     k = 4
 
-    while l < size - k - 2 and r < size - k - 2:
+    while l < size - k - 4 and r < size - k - 4:
       dl = random.randint(1, k) # randint is inclusive
       for i in range(dl):
         edges.append((str(l), str(r + i + 1), 1))
