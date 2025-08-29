@@ -9,8 +9,8 @@ build: ## Compile the rust code using maturin
 release: ## Compile the rust code using maturin
 	maturin develop --release
 
-test-rust: build
-	cargo test
+test-rust:
+	cargo test -p untanglers-core -- --nocapture
 
 test-python: release ## Run the tests
 	pytest -vv

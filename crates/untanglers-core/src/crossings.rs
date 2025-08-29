@@ -181,9 +181,9 @@ where
       &cumulative_weights,
       &weights,
       &mut pair_crossings,
-      self.size_left,
-      self.size_right,
-      self.size_left,
+      node_count,
+      internal_size,
+      node_count,
     );
 
     pair_crossings
@@ -288,9 +288,12 @@ mod tests {
 
     let crossings = Crossings::<u8>::new(nodes_left.clone(), nodes_right.clone(), edges);
 
+    eprintln!("Checking left");
     let expected_left: Vec<f64> = vec![0., 0., 3., 0., 0., 0., 6., 0., -3., -6., 0., 0., 0., 0., 0., 0.];
-    let expected_right: Vec<f64> = vec![0., 0., 3., 0., 0., 0., 6., 0., -3., -6., 0., 0., 0., 0., 0., 0.];
     assert_eq!(crossings.count_pair_crossings(Side::Left), expected_left);
+
+    eprintln!("Checking right");
+    let expected_right: Vec<f64> = vec![0., 0., 3., 0., 0., 0., 6., 0., -3., -6., 0., 0., 0., 0., 0., 0.];
     assert_eq!(crossings.count_pair_crossings(Side::Right), expected_right);
   }
 

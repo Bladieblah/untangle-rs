@@ -1,8 +1,6 @@
 use pyo3::prelude::*;
 use untanglers_core as core;
 
-
-
 #[pyclass]
 struct Crossings {
   inner: core::crossings::Crossings<String>,
