@@ -14,21 +14,23 @@ pub fn main() {
   );
 
   let mut crossings = crossings::Crossings::new(nodes_left, nodes_right, edges);
-  let pair_crossings = timeit("Pair crossings", || crossings.count_pair_crossings());
+  let pair_crossings = timeit("Pair crossings", || {
+    crossings.count_pair_crossings(crossings::Side::Left)
+  });
   log::info!(
     "Start: {} edge crossings",
     timeit("Count crossings", || crossings.count_crossings())
   );
   timeit("Crossings Benchmark 1e3", || {
-    crossings._swap_nodes(1000, 10., &pair_crossings)
+    crossings._swap_nodes(1000, 10., &pair_crossings, crossings::Side::Left)
   });
   log::info!("1e3: {} edge crossings", crossings.count_crossings());
   timeit("Crossings Benchmark 1e4", || {
-    crossings._swap_nodes(10000, 1., &pair_crossings)
+    crossings._swap_nodes(10000, 1., &pair_crossings, crossings::Side::Left)
   });
   log::info!("1e4: {} edge crossings", crossings.count_crossings());
   timeit("Crossings Benchmark 1e5", || {
-    crossings._swap_nodes(100000, 0.1, &pair_crossings)
+    crossings._swap_nodes(100000, 0.1, &pair_crossings, crossings::Side::Left)
   });
   log::info!("1e5: {} edge crossings", crossings.count_crossings());
 

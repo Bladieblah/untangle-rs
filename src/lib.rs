@@ -3,12 +3,6 @@ use pyo3::prelude::*;
 pub mod crossings;
 pub mod utils;
 
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-  Ok((a + b).to_string())
-}
-
 #[pyclass]
 struct Crossings {
   inner: crossings::Crossings<String>,
@@ -22,8 +16,12 @@ impl Crossings {
     Self { inner }
   }
 
-  pub fn swap_nodes(&mut self, max_iterations: usize, temperature: f64) {
-    self.inner.swap_nodes(max_iterations, temperature);
+  pub fn swap_nodes_left(&mut self, max_iterations: usize, temperature: f64) {
+    self.inner.swap_nodes_left(max_iterations, temperature);
+  }
+
+  pub fn swap_nodes_right(&mut self, max_iterations: usize, temperature: f64) {
+    self.inner.swap_nodes_right(max_iterations, temperature);
   }
 
   pub fn get_nodes(&self) -> (Vec<String>, Vec<String>) {
@@ -40,7 +38,4 @@ impl Crossings {
 mod untanglers {
   #[pymodule_export]
   use crate::Crossings;
-
-  #[pymodule_export]
-  use crate::sum_as_string;
 }
