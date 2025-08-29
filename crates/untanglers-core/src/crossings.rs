@@ -1,12 +1,12 @@
 use itertools::Itertools;
 use rand::random;
 use std::collections::HashMap;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
 use crate::utils::matmul;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum Side {
   Left,
   Right,
@@ -14,7 +14,7 @@ pub enum Side {
 
 pub struct Crossings<T>
 where
-  T: Eq + Hash + Clone + Display,
+  T: Eq + Hash + Clone + Display + Debug,
 {
   nodes_left: Vec<T>,
   nodes_right: Vec<T>,
@@ -27,7 +27,7 @@ where
 
 impl<T> Crossings<T>
 where
-  T: Eq + Hash + Clone + Display,
+  T: Eq + Hash + Clone + Display + Debug,
 {
   // Static methods
 
@@ -129,12 +129,12 @@ where
    * - PC^T = C * W^T
    */
   pub fn count_pair_crossings(&self, side: Side) -> Vec<f64> {
-    let (node_count, internal_size) = match side {
-      Side::Left => (self.size_left, self.size_right),
-      Side::Right => (self.size_right, self.size_left),
+    let (swappable_nodes, static_nodes, swappable_count, static_count) = match side {
+      Side::Left => (&self.left, &self.right, self.size_left, self.size_right),
+      Side::Right => (&self.right, &self.left, self.size_right, self.size_left),
     };
 
-    let mut weights: Vec<f64> = vec![0.; node_count * internal_size];
+    let mut weights: Vec<f64> = vec![0.; swappable_count * static_count];
     match side {
       Side::Left => {
         for (left, right, weight) in &self.edges {
@@ -150,40 +150,61 @@ where
 
     // Step 1.
     // These sumulative sums are EXCLUSIVE so the computation in step 2 is simpler.
-    let mut cumulative_weights_f: Vec<f64> = vec![0.; node_count * internal_size];
-    let mut cumulative_weights_b: Vec<f64> = vec![0.; node_count * internal_size];
-    let mut cumulative_weights: Vec<f64> = vec![0.; node_count * internal_size];
+    let mut cumulative_weights_f: Vec<f64> = vec![0.; swappable_count * static_count];
+    let mut cumulative_weights_b: Vec<f64> = vec![0.; swappable_count * static_count];
+    let mut cumulative_weights: Vec<f64> = vec![0.; swappable_count * static_count];
+
+    // // TODO: Simplify?
+    // // This is in essence a matrix multiplication, but due to the symmetry of the right matrix it can happen in O(L*R)
+    // for swappable_id in swappable_nodes {
+    //   for static_id in 1..static_count {
+    //     let index = swappable_id * static_count + static_id;
+    //     let index_w = (static_id - 1) * swappable_count + swappable_id;
+    //     cumulative_weights_f[index] = cumulative_weights_f[index - 1] + weights[index_w];
+    //   }
+
+    //   for static_id in (0..static_count - 1).rev() {
+    //     let index = swappable_id * static_count + static_id;
+    //     let index_w = (static_id + 1) * swappable_count + swappable_id;
+    //     cumulative_weights_b[index] = cumulative_weights_b[index + 1] + weights[index_w];
+    //   }
+
+    //   for static_id in 0..static_count {
+    //     let index = swappable_id * static_count + static_id;
+    //     cumulative_weights[index] = cumulative_weights_b[index] - cumulative_weights_f[index];
+    //   }
+    // }
 
     // TODO: Simplify?
     // This is in essence a matrix multiplication, but due to the symmetry of the right matrix it can happen in O(L*R)
-    for swappable_id in 0..node_count {
-      for static_id in 1..internal_size {
-        let index = swappable_id * internal_size + static_id;
-        let index_w = (static_id - 1) * node_count + swappable_id;
+    for swappable_id in 0..swappable_count {
+      for static_id in 1..static_count {
+        let index = swappable_id * static_count + static_id;
+        let index_w = static_nodes[static_id - 1] * swappable_count + swappable_nodes[swappable_id];
         cumulative_weights_f[index] = cumulative_weights_f[index - 1] + weights[index_w];
       }
 
-      for static_id in (0..internal_size - 1).rev() {
-        let index = swappable_id * internal_size + static_id;
-        let index_w = (static_id + 1) * node_count + swappable_id;
+      for static_id in (0..static_count - 1).rev() {
+        let index = swappable_id * static_count + static_id;
+        let index_w = static_nodes[static_id + 1] * swappable_count + swappable_nodes[swappable_id];
         cumulative_weights_b[index] = cumulative_weights_b[index + 1] + weights[index_w];
       }
 
-      for static_id in (0..internal_size).rev() {
-        let index = swappable_id * internal_size + static_id;
+      for static_id in 0..static_count {
+        let index = swappable_id * static_count + static_id;
         cumulative_weights[index] = cumulative_weights_b[index] - cumulative_weights_f[index];
       }
     }
 
     // Step 2.
-    let mut pair_crossings: Vec<f64> = vec![0.; node_count * node_count];
+    let mut pair_crossings: Vec<f64> = vec![0.; swappable_count * swappable_count];
     matmul(
       &cumulative_weights,
       &weights,
       &mut pair_crossings,
-      node_count,
-      internal_size,
-      node_count,
+      swappable_count,
+      static_count,
+      swappable_count,
     );
 
     pair_crossings
@@ -217,9 +238,9 @@ where
   pub fn _swap_nodes(&mut self, max_iterations: usize, temperature: f64, pair_crossings: &[f64], side: Side) -> i64 {
     let mut crossings = self.count_crossings() as i64;
 
-    let (nodes, node_count) = match side {
-      Side::Left => (&mut self.left, self.size_left),
-      Side::Right => (&mut self.left, self.size_right),
+    let (nodes, node_count, node_names) = match side {
+      Side::Left => (&mut self.left, self.size_left, &self.nodes_left),
+      Side::Right => (&mut self.right, self.size_right, &self.nodes_right),
     };
 
     if crossings > 0 {
@@ -227,10 +248,12 @@ where
         for j in 0..node_count - 1 {
           let (node_a, node_b) = (nodes[j], nodes[j + 1]);
           let contribution = pair_crossings[node_a * node_count + node_b];
+          // println!("Nodes ({}, {}) have contrib {}", node_names[node_a], node_names[node_b], contribution);
           if contribution > 0. || ((contribution - 1.) / temperature).exp() > random::<f64>() {
             nodes[j] = node_b;
             nodes[j + 1] = node_a;
             crossings -= contribution as i64;
+            // println!("Swapped nodes, crossings = {}", crossings);
           }
         }
 
@@ -280,36 +303,87 @@ mod tests {
   use super::*;
   use crate::utils::*;
 
+  // #[test]
+  // fn test_pairwise_matrix() {
+  //   let nodes_left: Vec<u8> = vec![0, 1, 2, 10];
+  //   let nodes_right: Vec<u8> = vec![3, 4, 5];
+  //   let edges: Vec<(u8, u8, usize)> = vec![(0, 5, 1), (1, 5, 2), (2, 4, 3)];
+
+  //   let crossings = Crossings::<u8>::new(nodes_left.clone(), nodes_right.clone(), edges);
+
+  //   eprintln!("Checking left");
+  //   let expected_left: Vec<f64> = vec![0., 0., 3., 0., 0., 0., 6., 0., -3., -6., 0., 0., 0., 0., 0., 0.];
+  //   assert_eq!(crossings.count_pair_crossings(Side::Left), expected_left);
+
+  //   eprintln!("Checking right");
+  //   let expected_right: Vec<f64> = vec![0.0, 0.0, 0.0, 0.0, 0.0, -9.0, 0.0, 9.0, 0.0];
+  //   assert_eq!(crossings.count_pair_crossings(Side::Right), expected_right);
+  // }
+
   #[test]
-  fn test_pairwise_matrix() {
+  fn test_simple_graph_left() {
     let nodes_left: Vec<u8> = vec![0, 1, 2, 10];
     let nodes_right: Vec<u8> = vec![3, 4, 5];
     let edges: Vec<(u8, u8, usize)> = vec![(0, 5, 1), (1, 5, 2), (2, 4, 3)];
 
-    let crossings = Crossings::<u8>::new(nodes_left.clone(), nodes_right.clone(), edges);
+    let mut crossings = Crossings::<u8>::new(nodes_left, nodes_right, edges);
 
-    eprintln!("Checking left");
     let expected_left: Vec<f64> = vec![0., 0., 3., 0., 0., 0., 6., 0., -3., -6., 0., 0., 0., 0., 0., 0.];
     assert_eq!(crossings.count_pair_crossings(Side::Left), expected_left);
-
-    eprintln!("Checking right");
-    let expected_right: Vec<f64> = vec![0., 0., 3., 0., 0., 0., 6., 0., -3., -6., 0., 0., 0., 0., 0., 0.];
+    let expected_right: Vec<f64> = vec![0.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, -9.0, 0.0];
     assert_eq!(crossings.count_pair_crossings(Side::Right), expected_right);
+
+    assert_eq!(crossings.count_crossings(), 9);
+
+    let expected_count = crossings.swap_nodes(10, 1e-3, Side::Left);
+    let actual_count = crossings.count_crossings() as i64;
+    assert_eq!(expected_count, actual_count);
+    assert_eq!(actual_count, 0);
   }
 
   #[test]
-  fn test_simple_graph() {
-    let nodes_left: Vec<u8> = vec![0, 1, 2];
-    let nodes_right: Vec<u8> = vec![3, 4, 5];
-    let edges: Vec<(u8, u8, usize)> = vec![(0, 5, 1), (1, 5, 2), (2, 4, 3)];
+  fn test_simple_graph_right() {
+    let nodes_left: Vec<u8> = vec![3, 4, 5];
+    let nodes_right: Vec<u8> = vec![0, 1, 2, 10];
+    let edges: Vec<(u8, u8, usize)> = vec![(5, 0, 1), (5, 1, 2), (4, 2, 3)];
+
     let mut crossings = Crossings::<u8>::new(nodes_left, nodes_right, edges);
+
+    let expected_left: Vec<f64> = vec![0.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, -9.0, 0.0];
+    assert_eq!(crossings.count_pair_crossings(Side::Left), expected_left);
+    let expected_right: Vec<f64> = vec![0., 0., 3., 0., 0., 0., 6., 0., -3., -6., 0., 0., 0., 0., 0., 0.];
+    assert_eq!(crossings.count_pair_crossings(Side::Right), expected_right);
+
     assert_eq!(crossings.count_crossings(), 9);
-    crossings.swap_nodes(10, 1e-3, Side::Left);
-    assert_eq!(crossings.count_crossings(), 0);
+
+    let expected_count = crossings.swap_nodes(10, 1e-3, Side::Right);
+    let actual_count = crossings.count_crossings() as i64;
+    assert_eq!(expected_count, actual_count);
+    assert_eq!(actual_count, 0);
   }
 
   #[test]
   fn test_difficult_graph() {
+    env_logger::init();
+    let n = 50;
+    let (nodes_left, nodes_right, edges) = generate_graph(n);
+
+    let mut crossings = Crossings::new(nodes_left, nodes_right, edges.clone());
+    let start_crossings = crossings.count_crossings();
+
+    let expected_crossings = crossings.swap_nodes_right(10, 2.);
+    let mid_crossings = crossings.count_crossings();
+    assert_eq!(mid_crossings as i64, expected_crossings);
+    assert!(mid_crossings < start_crossings);
+
+    let expected_crossings = crossings.swap_nodes_left(10, 2.);
+    let end_crossings = crossings.count_crossings();
+    assert_eq!(end_crossings as i64, expected_crossings);
+    assert!(end_crossings < mid_crossings, "{end_crossings} !< {mid_crossings}");
+  }
+
+  #[test]
+  fn test_cooldown() {
     env_logger::init();
     let n = 50;
     let (nodes_left, nodes_right, edges) = generate_graph(n);

@@ -18,7 +18,7 @@ test-python: release ## Run the tests
 test: test-rust test-python
 
 benchmark: release ## Run a benchmark to compare the original python implementation with the optimised rust implementation
-	cargo run --release
+	cargo run -p untanglers-core --release
 	python -m tests.benchmark
 
 lint: ## Run linting
