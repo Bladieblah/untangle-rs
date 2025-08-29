@@ -1,0 +1,12 @@
+[package]
+name = "untanglers-py"             # Rust crate name (can differ from Python module)
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "untanglers"                 # Python module name
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
+untanglers_core = { package = "untanglers-core", path = "../untanglers-core" }

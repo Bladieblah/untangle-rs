@@ -9,7 +9,7 @@ license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.11, <4"
 dependencies = [
-    "maturin (>=1.9.1,<2.0.0)"
+    # "maturin (>=1.9.1,<2.0.0)"
 ]
 classifiers = [
     "Programming Language :: Rust",
@@ -18,7 +18,8 @@ classifiers = [
 ]
 
 [tool.maturin]
-features = ["pyo3/extension-module"]
+manifest-path = "crates/untanglers-py/Cargo.toml"
+# features = ["pyo3/extension-module"]
 
 [tool.poetry]
 version = "0.0.0"

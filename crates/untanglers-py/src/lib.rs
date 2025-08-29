@@ -1,18 +1,18 @@
 use pyo3::prelude::*;
+use untanglers_core as core;
 
-pub mod crossings;
-pub mod utils;
+
 
 #[pyclass]
 struct Crossings {
-  inner: crossings::Crossings<String>,
+  inner: core::crossings::Crossings<String>,
 }
 
 #[pymethods]
 impl Crossings {
   #[new]
   pub fn crossings_new(nodes_left: Vec<String>, nodes_right: Vec<String>, edges: Vec<(String, String, usize)>) -> Self {
-    let inner = crossings::Crossings::<String>::new(nodes_left, nodes_right, edges);
+    let inner = core::crossings::Crossings::<String>::new(nodes_left, nodes_right, edges);
     Self { inner }
   }
 
