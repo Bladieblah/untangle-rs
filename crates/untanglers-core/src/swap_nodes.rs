@@ -6,11 +6,31 @@ use std::hash::Hash;
 
 use crate::utils::matmul;
 
+pub fn swap_edges<T>(edges: &Vec<(T, T, usize)>) -> Vec<(T, T, usize)>
+where
+  T: Eq + Hash + Clone,
+{
+  edges.iter().map(|(l, r, w)| (r.clone(), l.clone(), *w)).collect_vec()
+}
+
 fn invert_vec<T>(v: &[T]) -> HashMap<&T, usize>
 where
   T: Eq + Hash + Clone,
 {
   v.iter().enumerate().map(|(i, item)| (item, i)).collect()
+}
+
+fn map_edges<T>(nodes1: &Vec<T>, nodes2: &Vec<T>, edges: &Vec<(T, T, usize)>) -> Vec<(usize, usize, usize)>
+where
+  T: Eq + Hash + Clone,
+{
+  let index1 = invert_vec(nodes1);
+  let index2 = invert_vec(nodes2);
+
+  edges
+    .iter()
+    .map(|(l, r, w)| (index1[l], index2[r], *w))
+    .collect_vec()
 }
 
 /**
@@ -24,9 +44,9 @@ where
  *
  * Could likely be further optimised but nowhere near being a bottleneck
  */
-pub fn count_crossings(swappable_count: usize, static_count: usize, edges: &Vec<(usize, usize, usize)>) -> usize {
-  // // Step 1
-  let mut sorted_edges = edges.clone();
+fn _count_crossings(static_count: usize, mapped_edges: &Vec<(usize, usize, usize)>) -> usize {
+  // Step 1
+  let mut sorted_edges = mapped_edges.clone();
   sorted_edges.sort_unstable();
 
   let mut weights = vec![0_usize; static_count];
@@ -39,6 +59,14 @@ pub fn count_crossings(swappable_count: usize, static_count: usize, edges: &Vec<
   }
 
   crossings
+}
+
+pub fn count_crossings<T>(nodes1: &Vec<T>, nodes2: &Vec<T>, edges: &Vec<(T, T, usize)>) -> usize
+where
+  T: Eq + Hash + Clone,
+{
+  let mapped_edges = map_edges(&nodes1, &nodes2, edges);
+  _count_crossings(nodes2.len(), &mapped_edges)
 }
 
 /**
@@ -100,36 +128,35 @@ fn count_pair_crossings(swappable_count: usize, static_count: usize, edges: &Vec
     swappable_count,
     static_count,
     swappable_count,
-  );
+);
 
   pair_crossings
 }
 
-fn swap_nodes(swappable_count: usize, pair_crossings: &[f64], max_iterations: usize, temperature: f64) -> Vec<usize> {
+fn swap_nodes(swappable_count: usize, pair_crossings: &[f64], max_iterations: usize, temperature: f64, mut crossing_count: i64) -> (Vec<usize>, i64) {
   let mut nodes = (0..swappable_count).collect_vec();
 
-  // if crossings > 0 {
-  for _ in 0..max_iterations {
-    for j in 0..swappable_count - 1 {
-      let (node_a, node_b) = (nodes[j], nodes[j + 1]);
-      let contribution = pair_crossings[node_a * swappable_count + node_b];
-      // println!("Nodes ({}, {}) have contrib {}", node_names[node_a], node_names[node_b], contribution);
-      if contribution > 0. || ((contribution - 1.) / temperature).exp() > random::<f64>() {
-        nodes[j] = node_b;
-        nodes[j + 1] = node_a;
-        // crossings -= contribution as i64;
-        // println!("Swapped nodes, crossings = {}", crossings);
+  if crossing_count > 0 {
+    for _ in 0..max_iterations {
+      for j in 0..swappable_count - 1 {
+        let (node_a, node_b) = (nodes[j], nodes[j + 1]);
+        let contribution = pair_crossings[node_a * swappable_count + node_b];
+        // println!("Nodes ({}, {}) have contrib {}", node_names[node_a], node_names[node_b], contribution);
+        if contribution > 0. || ((contribution - 1.) / temperature).exp() > random::<f64>() {
+          nodes[j] = node_b;
+          nodes[j + 1] = node_a;
+          crossing_count -= contribution as i64;
+          // println!("Swapped nodes, crossings = {}", crossings);
+        }
+      }
+
+      if crossing_count == 0 {
+        break;
       }
     }
-
-    // if crossings == 0 {
-    //   break;
-    // }
   }
-  // }
 
-  // crossings
-  nodes
+  (nodes, crossing_count)
 }
 
 pub fn reduce_crossings<T>(
@@ -138,7 +165,7 @@ pub fn reduce_crossings<T>(
   edges: Vec<(T, T, usize)>,
   iterations: usize,
   temperature: f64,
-) -> Vec<T>
+) -> (Vec<T>, i64)
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
@@ -150,8 +177,35 @@ where
     .map(|(l, r, w)| (index_swappable[l], index_static[r], *w))
     .collect_vec();
 
+  let crossing_count = _count_crossings(static_nodes.len(), &mapped_edges);
   let pairwise_matrix = count_pair_crossings(swappable_nodes.len(), static_nodes.len(), &mapped_edges);
-  let new_indices = swap_nodes(swappable_nodes.len(), &pairwise_matrix, iterations, temperature);
+  let (new_indices, new_count) = swap_nodes(swappable_nodes.len(), &pairwise_matrix, iterations, temperature, crossing_count as i64);
 
-  new_indices.iter().map(|l| swappable_nodes[*l].clone()).collect_vec()
+  (new_indices.iter().map(|l| swappable_nodes[*l].clone()).collect_vec(), new_count)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::utils::*;
+
+  #[test]
+  fn test_difficult_graph2() {
+    env_logger::init();
+    let n = 50;
+    let temperature = 2.;
+    let iterations = 1000;
+
+    let (nodes_left, nodes_right, edges) = generate_graph(n);
+    let swapped_edges = swap_edges(&edges);
+    let start_crossings = count_crossings(&nodes_left, &nodes_right, &edges) as i64;
+
+    let (new_order, mid_crossings) = reduce_crossings(&nodes_left, &nodes_right, edges, iterations, temperature);
+    let (_, end_crossings) = reduce_crossings(&nodes_right, &new_order, swapped_edges, iterations, temperature);
+
+    log::info!("{} -> {} -> {}", start_crossings, mid_crossings, end_crossings);
+
+    assert!(mid_crossings < start_crossings, "{mid_crossings} !< {start_crossings}");
+    assert!(end_crossings < mid_crossings, "{end_crossings} !< {mid_crossings}");
+  }
 }
