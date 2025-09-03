@@ -17,7 +17,11 @@ use crate::utils::matmul;
  * - PC = W * (Cf - Cb)^T := W * C^T
  * - PC^T = C * W^T
  */
-pub fn pairwise_matrix(swappable_count: usize, static_count: usize, edges: &Vec<(usize, usize, usize)>) -> Vec<f64> {
+pub fn get_pairwise_matrix(
+  swappable_count: usize,
+  static_count: usize,
+  edges: &Vec<(usize, usize, usize)>,
+) -> Vec<f64> {
   let mut weights: Vec<f64> = vec![0.; swappable_count * static_count];
   for (swappable_id, static_id, weight) in edges {
     weights[static_id * swappable_count + swappable_id] = *weight as f64;
