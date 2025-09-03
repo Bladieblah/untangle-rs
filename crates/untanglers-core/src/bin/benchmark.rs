@@ -41,15 +41,4 @@ pub fn main() {
   });
   log::info!("1e5: {} edge crossings", crossing_count);
 
-  // timeit("Crossings Benchmark 1e4", || {
-  //   crossings._swap_nodes(10000, 1., &pairwise_matrix, crossings::Side::Left)
-  // });
-  // log::info!("1e4: {} edge crossings", crossings.count_crossings());
-
-  // timeit("Crossings Benchmark 1e5", || {
-  //   crossings._swap_nodes(100000, 0.1, &pairwise_matrix, crossings::Side::Left)
-  // });
-  // log::info!("1e5: {} edge crossings", crossings.count_crossings());
-
-  // crossings.get_nodes();
 }

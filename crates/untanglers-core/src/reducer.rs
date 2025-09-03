@@ -20,12 +20,13 @@ pub fn swap_nodes(
   if crossing_count > 0 {
     for _ in 0..max_iterations {
       for j in 0..swappable_count - 1 {
-        let (node_a, node_b) = (nodes[j], nodes[j + 1]);
+        let (node_a, node_b) = (new_nodes[j], new_nodes[j + 1]);
         let contribution = pairwise_matrix[node_a * swappable_count + node_b];
         if contribution > 0. || ((contribution - 1.) / temperature).exp() > random::<f64>() {
           new_nodes[j] = node_b;
           new_nodes[j + 1] = node_a;
           crossing_count -= contribution as i64;
+          // println!("Swapped nodes {} <-> {} with contrib {} new count = {}", node_a, node_b, contribution, crossing_count);
         }
       }
 
