@@ -1,3 +1,6 @@
+mod count_crossings;
 pub mod crossings;
-mod swap_nodes;
+mod mapping;
+mod pairwise;
+mod reducer;
 pub mod utils;

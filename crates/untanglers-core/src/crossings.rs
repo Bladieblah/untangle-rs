@@ -1,9 +1,9 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
-use crate::swap_nodes;
-
-
+use crate::count_crossings::count_crossings;
+use crate::mapping::swap_edges;
+use crate::reducer;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Side {
@@ -25,9 +25,8 @@ impl<T> Crossings<T>
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
-
   pub fn new(nodes_left: Vec<T>, nodes_right: Vec<T>, edges: Vec<(T, T, usize)>) -> Self {
-    let inverted_edges = swap_nodes::swap_edges(&edges);
+    let inverted_edges = swap_edges(&edges);
 
     let this = Self {
       nodes_left,
@@ -42,7 +41,7 @@ where
   }
 
   pub fn count_crossings(&self) -> usize {
-    swap_nodes::count_crossings(&self.nodes_left, &self.nodes_right, &self.edges)
+    count_crossings(&self.nodes_left, &self.nodes_right, &self.edges)
   }
 
   #[allow(dead_code)]
@@ -56,7 +55,7 @@ where
   #[allow(dead_code)]
   pub fn swap_nodes_left(&mut self, max_iterations: usize, temperature: f64) -> i64 {
     let new_count: i64;
-    (self.nodes_left, new_count) = swap_nodes::reduce_crossings(
+    (self.nodes_left, new_count) = reducer::reduce_crossings(
       &self.nodes_left,
       &self.nodes_right,
       &self.edges,
@@ -69,7 +68,7 @@ where
   #[allow(dead_code)]
   pub fn swap_nodes_right(&mut self, max_iterations: usize, temperature: f64) -> i64 {
     let new_count: i64;
-    (self.nodes_right, new_count) = swap_nodes::reduce_crossings(
+    (self.nodes_right, new_count) = reducer::reduce_crossings(
       &self.nodes_right,
       &self.nodes_left,
       &self.inverted_edges,
@@ -78,7 +77,6 @@ where
     );
     new_count
   }
-
 
   // pub fn cooldown_side(&mut self, start_temp: f64, end_temp: f64, steps: usize, iterations: usize, side: Side) -> i64 {
   //   let mut temp = start_temp;
