@@ -1,6 +1,5 @@
-use crate::utils::{generate_graph, timeit};
-mod crossings;
-mod utils;
+use untanglers_core::utils::{generate_graph, timeit};
+use untanglers_core::crossings;
 
 pub fn main() {
   env_logger::init();
