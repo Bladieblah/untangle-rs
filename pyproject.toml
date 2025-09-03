@@ -9,7 +9,7 @@ license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.11, <4"
 dependencies = [
-    # "maturin (>=1.9.1,<2.0.0)"
+    "maturin (>=1.9.1,<2.0.0)"
 ]
 classifiers = [
     "Programming Language :: Rust",

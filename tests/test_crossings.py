@@ -11,9 +11,9 @@ class TestUntangleRs:
       ("c", "e", 1),
     ]
 
-    rs_crossings = untanglers.Crossings(nodes_left, nodes_right, edges)
+    rs_crossings = untanglers.LayoutOptimizer(nodes_left, nodes_right, edges)
     assert rs_crossings.count_crossings() == 2
-    rs_crossings.swap_nodes(10, 0)
+    rs_crossings.swap_nodes_left(10, 0)
     assert rs_crossings.count_crossings() == 0
 
 

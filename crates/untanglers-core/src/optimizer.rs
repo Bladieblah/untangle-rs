@@ -11,7 +11,7 @@ pub enum Side {
   Right,
 }
 
-pub struct Crossings<T>
+pub struct LayoutOptimizer<T>
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
@@ -21,7 +21,7 @@ where
   inverted_edges: Vec<(T, T, usize)>,
 }
 
-impl<T> Crossings<T>
+impl<T> LayoutOptimizer<T>
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
@@ -105,5 +105,12 @@ where
       }
     }
     new_count
+  }
+
+  pub fn get_nodes(&self) -> (Vec<T>, Vec<T>) {
+    return (
+      self.nodes_left.clone(),
+      self.nodes_right.clone(),
+    )
   }
 }
