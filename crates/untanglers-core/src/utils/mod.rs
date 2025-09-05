@@ -87,3 +87,10 @@ where
   }
   println!("{bottom}");
 }
+
+pub fn add_matrix(matrix1: &[f64], matrix2: &[f64]) -> Vec<f64> {
+  if matrix1.len() != matrix2.len() {
+    panic!("Attempting to add matrices of different sizes");
+  }
+  (0..matrix1.len()).map(|i| matrix1[i] + matrix2[i]).collect_vec()
+}

@@ -7,7 +7,7 @@ pub fn aggregate_pairwise_matrix(pairwise_matrix: &[f64], borders: &[usize]) -> 
   }
 
   let size = borders[borders.len() - 1] + 1;
-  
+
   let mut group_index_i = 0;
   for i in 0..size {
     if i > borders[group_index_i] {
@@ -19,7 +19,7 @@ pub fn aggregate_pairwise_matrix(pairwise_matrix: &[f64], borders: &[usize]) -> 
       if j > borders[group_index_j] {
         group_index_j += 1;
       }
-      
+
       // Due to the antisymmetry diagonals remain 0 after aggregation
       if group_index_i == group_index_j {
         continue;

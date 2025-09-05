@@ -61,6 +61,7 @@ where
       &self.edges,
       max_iterations,
       temperature,
+      &None,
     );
     new_count
   }
@@ -74,6 +75,7 @@ where
       &self.inverted_edges,
       max_iterations,
       temperature,
+      &None,
     );
     new_count
   }
@@ -90,6 +92,7 @@ where
           start_temp,
           end_temp,
           steps,
+          &None,
         )
       }
       Side::Right => {
@@ -101,16 +104,50 @@ where
           start_temp,
           end_temp,
           steps,
+          &None,
         )
       }
     }
     new_count
   }
 
+  pub fn optimize(&mut self, start_temp: f64, end_temp: f64, steps: usize, iterations: usize, passes: usize) -> i64 {
+    let mut crossing_count = 0;
+    for _ in 0..passes {
+      self.cooldown_side(start_temp, end_temp, steps, iterations, Side::Left);
+      crossing_count = self.cooldown_side(start_temp, end_temp, steps, iterations, Side::Right);
+    }
+
+    crossing_count
+  }
+
   pub fn get_nodes(&self) -> (Vec<T>, Vec<T>) {
-    return (
-      self.nodes_left.clone(),
-      self.nodes_right.clone(),
-    )
+    (self.nodes_left.clone(), self.nodes_right.clone())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::utils::*;
+
+  #[test]
+  fn test_optimize() {
+    let n = 2000;
+
+    let (nodes_left, nodes_right, edges) = generate_graph(n);
+    let mut optimizer = LayoutOptimizer::new(nodes_left.clone(), nodes_right.clone(), edges.clone());
+    let start_crossings = optimizer.count_crossings() as i64;
+    let end_crossings = timeit("Optimize", || optimizer.optimize(3., 0.1, 5, 1000, 10));
+
+    println!("Improved from {} to {}", start_crossings, end_crossings);
+    assert!(start_crossings > end_crossings);
+    assert!(end_crossings > 0);
+
+    // let (new_order, mid_crossings) = reduce_crossings(&nodes_left, &nodes_right, &edges, iterations, temperature);
+    // let (_, end_crossings) = reduce_crossings(&nodes_right, &new_order, &swapped_edges, iterations, temperature);
+
+    // assert!(mid_crossings < start_crossings, "{mid_crossings} !< {start_crossings}");
+    // assert!(end_crossings < mid_crossings, "{end_crossings} !< {mid_crossings}");
   }
 }

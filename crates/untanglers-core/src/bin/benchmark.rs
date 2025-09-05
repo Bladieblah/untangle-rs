@@ -27,18 +27,41 @@ pub fn main() {
   log::info!("Start: {} edge crossings", crossing_count);
 
   (nodes, crossing_count) = timeit("Crossings Benchmark 1e3", || {
-    swap_nodes(nodes_left.len(), &pairwise_matrix, 1000, 10., crossing_count, nodes)
+    swap_nodes(
+      nodes_left.len(),
+      &pairwise_matrix,
+      1000,
+      10.,
+      crossing_count,
+      nodes,
+      &None,
+    )
   });
   log::info!("1e3: {} edge crossings", crossing_count);
 
   (nodes, crossing_count) = timeit("Crossings Benchmark 1e4", || {
-    swap_nodes(nodes_left.len(), &pairwise_matrix, 10000, 1., crossing_count, nodes)
+    swap_nodes(
+      nodes_left.len(),
+      &pairwise_matrix,
+      10000,
+      1.,
+      crossing_count,
+      nodes,
+      &None,
+    )
   });
   log::info!("1e4: {} edge crossings", crossing_count);
 
   (_, crossing_count) = timeit("Crossings Benchmark 1e5", || {
-    swap_nodes(nodes_left.len(), &pairwise_matrix, 100000, 0.1, crossing_count, nodes)
+    swap_nodes(
+      nodes_left.len(),
+      &pairwise_matrix,
+      100000,
+      0.1,
+      crossing_count,
+      nodes,
+      &None,
+    )
   });
   log::info!("1e5: {} edge crossings", crossing_count);
-
 }
