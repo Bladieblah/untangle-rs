@@ -158,6 +158,55 @@ where
   )
 }
 
+pub fn cooldown2<T>(
+  swappable_nodes: &[T],
+  static_nodes1: &[T],
+  edges1: &[(T, T, usize)],
+  static_nodes2: &[T],
+  edges2: &[(T, T, usize)],
+  iterations: usize,
+  start_temp: f64,
+  end_temp: f64,
+  steps: usize,
+  borders: &Option<Vec<usize>>,
+) -> (Vec<T>, i64)
+where
+  T: Eq + Hash + Clone + Display + Debug,
+{
+  let mut temperature = start_temp;
+  let delta_t = (end_temp / start_temp).powf(1. / (steps as f64));
+
+  let mapped_edges1 = map_edges(swappable_nodes, static_nodes1, edges1);
+  let mapped_edges2 = map_edges(swappable_nodes, static_nodes2, edges2);
+
+  let mut crossing_count = (_count_crossings(static_nodes1.len(), &mapped_edges1)
+    + _count_crossings(static_nodes2.len(), &mapped_edges2)) as i64;
+  let pairwise_matrix = add_matrix(
+    &get_pairwise_matrix(swappable_nodes.len(), static_nodes1.len(), &mapped_edges2),
+    &get_pairwise_matrix(swappable_nodes.len(), static_nodes2.len(), &mapped_edges2),
+  );
+
+  let mut nodes = (0..swappable_nodes.len()).collect_vec();
+
+  for _ in 0..steps {
+    (nodes, crossing_count) = swap_nodes(
+      swappable_nodes.len(),
+      &pairwise_matrix,
+      iterations,
+      temperature,
+      crossing_count,
+      nodes,
+      borders,
+    );
+    temperature *= delta_t;
+  }
+
+  (
+    nodes.iter().map(|l| swappable_nodes[*l].clone()).collect_vec(),
+    crossing_count,
+  )
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
