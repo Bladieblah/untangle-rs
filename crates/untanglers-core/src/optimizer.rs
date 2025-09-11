@@ -29,8 +29,6 @@ where
       inverted_edges,
     };
 
-    log::debug!("Counted {} edge crossings.", this.count_crossings());
-
     this
   }
 
@@ -45,37 +43,41 @@ where
   }
 
   #[allow(dead_code)]
-  pub fn swap_nodes(&mut self, index: usize, max_iterations: usize, temperature: f64) -> i64 {
-    if index >= self.node_layers.len() {
-      panic!("Layer index out of range: {} > {}", index, self.node_layers.len() - 1);
+  pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) -> i64 {
+    if layer_index >= self.node_layers.len() {
+      panic!(
+        "Layer index out of range: {} > {}",
+        layer_index,
+        self.node_layers.len() - 1
+      );
     }
 
     let new_count: i64;
-    if index == 0 {
-      (self.node_layers[index], new_count) = reducer::reduce_crossings(
-        &self.node_layers[index],
-        &self.node_layers[index + 1],
-        &self.edges[index],
+    if layer_index == 0 {
+      (self.node_layers[layer_index], new_count) = reducer::reduce_crossings(
+        &self.node_layers[layer_index],
+        &self.node_layers[layer_index + 1],
+        &self.edges[layer_index],
         max_iterations,
         temperature,
         &None,
       );
-    } else if index == self.node_layers.len() - 1 {
-      (self.node_layers[index], new_count) = reducer::reduce_crossings(
-        &self.node_layers[index],
-        &self.node_layers[index - 1],
-        &self.inverted_edges[index - 1],
+    } else if layer_index == self.node_layers.len() - 1 {
+      (self.node_layers[layer_index], new_count) = reducer::reduce_crossings(
+        &self.node_layers[layer_index],
+        &self.node_layers[layer_index - 1],
+        &self.inverted_edges[layer_index - 1],
         max_iterations,
         temperature,
         &None,
       );
     } else {
-      (self.node_layers[index], new_count) = reducer::reduce_crossings2(
-        &self.node_layers[index],
-        &self.node_layers[index - 1],
-        &self.inverted_edges[index - 1],
-        &self.node_layers[index + 1],
-        &self.edges[index],
+      (self.node_layers[layer_index], new_count) = reducer::reduce_crossings2(
+        &self.node_layers[layer_index],
+        &self.node_layers[layer_index - 1],
+        &self.inverted_edges[layer_index - 1],
+        &self.node_layers[layer_index + 1],
+        &self.edges[layer_index],
         max_iterations,
         temperature,
         &None,
@@ -84,30 +86,40 @@ where
     new_count
   }
 
-
   #[allow(dead_code)]
-  pub fn cooldown(&mut self, index: usize, max_iterations: usize, start_temp: f64, end_temp: f64, steps: usize) -> i64 {
-    if index >= self.node_layers.len() {
-      panic!("Layer index out of range: {} > {}", index, self.node_layers.len() - 1);
+  pub fn cooldown(
+    &mut self,
+    layer_index: usize,
+    max_iterations: usize,
+    start_temp: f64,
+    end_temp: f64,
+    steps: usize,
+  ) -> i64 {
+    if layer_index >= self.node_layers.len() {
+      panic!(
+        "Layer index out of range: {} > {}",
+        layer_index,
+        self.node_layers.len() - 1
+      );
     }
 
     let new_count: i64;
-    if index == 0 {
-      (self.node_layers[index], new_count) = reducer::cooldown(
-        &self.node_layers[index],
-        &self.node_layers[index + 1],
-        &self.edges[index],
+    if layer_index == 0 {
+      (self.node_layers[layer_index], new_count) = reducer::cooldown(
+        &self.node_layers[layer_index],
+        &self.node_layers[layer_index + 1],
+        &self.edges[layer_index],
         max_iterations,
         start_temp,
         end_temp,
         steps,
         &None,
       );
-    } else if index == self.node_layers.len() - 1 {
-      (self.node_layers[index], new_count) = reducer::cooldown(
-        &self.node_layers[index],
-        &self.node_layers[index - 1],
-        &self.edges[index - 1],
+    } else if layer_index == self.node_layers.len() - 1 {
+      (self.node_layers[layer_index], new_count) = reducer::cooldown(
+        &self.node_layers[layer_index],
+        &self.node_layers[layer_index - 1],
+        &self.edges[layer_index - 1],
         max_iterations,
         start_temp,
         end_temp,
@@ -115,12 +127,12 @@ where
         &None,
       );
     } else {
-      (self.node_layers[index], new_count) = reducer::cooldown2(
-        &self.node_layers[index],
-        &self.node_layers[index - 1],
-        &self.edges[index - 1],
-        &self.node_layers[index + 1],
-        &self.edges[index],
+      (self.node_layers[layer_index], new_count) = reducer::cooldown2(
+        &self.node_layers[layer_index],
+        &self.node_layers[layer_index - 1],
+        &self.edges[layer_index - 1],
+        &self.node_layers[layer_index + 1],
+        &self.edges[layer_index],
         max_iterations,
         start_temp,
         end_temp,

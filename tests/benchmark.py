@@ -19,7 +19,7 @@ class Benchmark:
     nodes_left = [str(i) for i in range(size)]
     nodes_right = [str(i) for i in range(size)]
 
-    edges = []
+    edges: list[tuple[str, str, int]] = []
 
     left, right = 0, 0
     k = 4
@@ -46,14 +46,14 @@ class Benchmark:
     return nodes_left, nodes_right, edges
 
   @timeit
-  def check_python(self, nodes_left, nodes_right, edges):
+  def check_python(self, nodes_left: list[str], nodes_right: list[str], edges: list[tuple[str, str, int]]):
     crossings = Crossings(nodes_left, nodes_right, edges)
     crossings.swap_neighbours(self.max_iterations)
 
   @timeit
-  def check_rust(self, nodes_left, nodes_right, edges):
-    crossings = untanglers.LayoutOptimizer(nodes_left, nodes_right, edges)
-    crossings.swap_nodes_left(self.max_iterations, self.temperature)
+  def check_rust(self, nodes_left: list[str], nodes_right: list[str], edges: list[tuple[str, str, int]]):
+    crossings = untanglers.LayoutOptimizer([nodes_left, nodes_right], [edges])
+    crossings.swap_nodes(0, self.max_iterations, self.temperature)
 
 
 if __name__ == "__main__":

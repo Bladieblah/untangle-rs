@@ -59,7 +59,9 @@ pub fn generate_multipartite_graph(n_layers: i32, n_nodes: i32) -> GraphType {
   let mut nodes = (0..n_layers).map(|_l| (0..n_nodes).collect_vec()).collect_vec();
 
   let mut rng = rand::rng();
-  let edges = (0..n_layers-1).map(|_l| generate_edges(&mut rng, n_nodes)).collect_vec();
+  let edges = (0..n_layers - 1)
+    .map(|_l| generate_edges(&mut rng, n_nodes))
+    .collect_vec();
 
   (0..n_layers).for_each(|l| nodes[l as usize].shuffle(&mut rng));
 
