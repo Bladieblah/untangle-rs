@@ -10,7 +10,7 @@ release: ## Compile the rust code using maturin
 	maturin develop --release
 
 test-rust:
-	cargo test -p untanglers-core -- --nocapture
+	cd crates/untanglers-core && cargo test -- --nocapture
 
 test-python: release ## Run the tests
 	pytest -vv

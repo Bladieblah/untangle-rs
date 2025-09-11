@@ -25,3 +25,10 @@ where
 
   edges.iter().map(|(l, r, w)| (index1[l], index2[r], *w)).collect_vec()
 }
+
+pub fn reorder_nodes<T>(nodes: &[T], new_indices: &[usize]) -> Vec<T>
+where
+  T: Eq + Hash + Clone,
+{
+  new_indices.iter().map(|l| nodes[*l].clone()).collect_vec()
+}

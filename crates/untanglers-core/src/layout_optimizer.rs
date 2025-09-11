@@ -4,8 +4,8 @@ use std::hash::Hash;
 use itertools::Itertools;
 
 use crate::count_crossings::count_crossings;
-use crate::mapping::swap_edges;
-use crate::reducer::{self};
+use crate::mapping::{reorder_nodes, swap_edges};
+use crate::reducer::reduce_crossings_final;
 
 pub struct LayoutOptimizer<T>
 where
@@ -40,8 +40,11 @@ where
     total_count
   }
 
-  #[allow(dead_code)]
-  pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) -> i64 {
+  #[allow(clippy::type_complexity)]
+  fn get_adjacent_layers(
+    &self,
+    layer_index: usize,
+  ) -> (&[T], &[(T, T, usize)], Option<&Vec<T>>, Option<&Vec<(T, T, usize)>>) {
     if layer_index >= self.node_layers.len() {
       panic!(
         "Layer index out of range: {} > {}",
@@ -50,37 +53,45 @@ where
       );
     }
 
-    let new_count: i64;
     if layer_index == 0 {
-      (self.node_layers[layer_index], new_count) = reducer::reduce_crossings(
-        &self.node_layers[layer_index],
-        &self.node_layers[layer_index + 1],
-        &self.edges[layer_index],
-        max_iterations,
-        temperature,
-        &None,
-      );
+      (&self.node_layers[layer_index + 1], &self.edges[layer_index], None, None)
     } else if layer_index == self.node_layers.len() - 1 {
-      (self.node_layers[layer_index], new_count) = reducer::reduce_crossings(
-        &self.node_layers[layer_index],
+      (
         &self.node_layers[layer_index - 1],
         &self.inverted_edges[layer_index - 1],
-        max_iterations,
-        temperature,
-        &None,
-      );
+        None,
+        None,
+      )
     } else {
-      (self.node_layers[layer_index], new_count) = reducer::reduce_crossings2(
-        &self.node_layers[layer_index],
+      (
         &self.node_layers[layer_index - 1],
         &self.inverted_edges[layer_index - 1],
-        &self.node_layers[layer_index + 1],
-        &self.edges[layer_index],
-        max_iterations,
-        temperature,
-        &None,
-      );
+        Some(&self.node_layers[layer_index + 1]),
+        Some(&self.edges[layer_index]),
+      )
     }
+  }
+
+  #[allow(dead_code)]
+  pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) -> i64 {
+    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
+
+    let (new_indices, new_count) = reduce_crossings_final(
+      &self.node_layers[layer_index],
+      nodes1,
+      edges1,
+      nodes2,
+      edges2,
+      max_iterations,
+      temperature,
+      temperature,
+      1,
+      None,
+      None,
+    );
+
+    self.node_layers[layer_index] = reorder_nodes(&self.node_layers[layer_index], &new_indices);
+
     new_count
   }
 
@@ -93,51 +104,24 @@ where
     end_temp: f64,
     steps: usize,
   ) -> i64 {
-    if layer_index >= self.node_layers.len() {
-      panic!(
-        "Layer index out of range: {} > {}",
-        layer_index,
-        self.node_layers.len() - 1
-      );
-    }
+    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
 
-    let new_count: i64;
-    if layer_index == 0 {
-      (self.node_layers[layer_index], new_count) = reducer::cooldown(
-        &self.node_layers[layer_index],
-        &self.node_layers[layer_index + 1],
-        &self.edges[layer_index],
-        max_iterations,
-        start_temp,
-        end_temp,
-        steps,
-        &None,
-      );
-    } else if layer_index == self.node_layers.len() - 1 {
-      (self.node_layers[layer_index], new_count) = reducer::cooldown(
-        &self.node_layers[layer_index],
-        &self.node_layers[layer_index - 1],
-        &self.edges[layer_index - 1],
-        max_iterations,
-        start_temp,
-        end_temp,
-        steps,
-        &None,
-      );
-    } else {
-      (self.node_layers[layer_index], new_count) = reducer::cooldown2(
-        &self.node_layers[layer_index],
-        &self.node_layers[layer_index - 1],
-        &self.edges[layer_index - 1],
-        &self.node_layers[layer_index + 1],
-        &self.edges[layer_index],
-        max_iterations,
-        start_temp,
-        end_temp,
-        steps,
-        &None,
-      );
-    }
+    let (new_indices, new_count) = reduce_crossings_final(
+      &self.node_layers[layer_index],
+      nodes1,
+      edges1,
+      nodes2,
+      edges2,
+      max_iterations,
+      start_temp,
+      end_temp,
+      steps,
+      None,
+      None,
+    );
+
+    self.node_layers[layer_index] = reorder_nodes(&self.node_layers[layer_index], &new_indices);
+
     new_count
   }
 

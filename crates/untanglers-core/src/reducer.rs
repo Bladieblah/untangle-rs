@@ -4,6 +4,7 @@ use rand::random;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
+use crate::aggregation::aggregate_pairwise_matrix;
 use crate::count_crossings::_count_crossings;
 use crate::mapping::map_edges;
 use crate::pairwise::get_pairwise_matrix;
@@ -16,7 +17,7 @@ pub fn swap_nodes(
   temperature: f64,
   mut crossing_count: i64,
   nodes: Vec<usize>,
-  borders: &Option<Vec<usize>>,
+  borders: Option<&Vec<usize>>,
 ) -> (Vec<usize>, i64) {
   let mut new_nodes = nodes.clone();
   let indices = match borders {
@@ -46,171 +47,76 @@ pub fn swap_nodes(
   (new_nodes, crossing_count)
 }
 
-pub fn reduce_crossings<T>(
-  swappable_nodes: &[T],
-  static_nodes: &[T],
-  edges: &[(T, T, usize)],
-  iterations: usize,
-  temperature: f64,
-  borders: &Option<Vec<usize>>,
-) -> (Vec<T>, i64)
-where
-  T: Eq + Hash + Clone + Display + Debug,
-{
-  let mapped_edges = map_edges(swappable_nodes, static_nodes, edges);
-
-  let crossing_count = _count_crossings(static_nodes.len(), &mapped_edges);
-  let pairwise_matrix = get_pairwise_matrix(swappable_nodes.len(), static_nodes.len(), &mapped_edges);
-
-  let (new_indices, new_count) = swap_nodes(
-    swappable_nodes.len(),
-    &pairwise_matrix,
-    iterations,
-    temperature,
-    crossing_count as i64,
-    (0..swappable_nodes.len()).collect_vec(),
-    borders,
-  );
-
-  (
-    new_indices.iter().map(|l| swappable_nodes[*l].clone()).collect_vec(),
-    new_count,
-  )
-}
-
-pub fn reduce_crossings2<T>(
+pub fn reduce_crossings_final<T>(
   swappable_nodes: &[T],
   static_nodes1: &[T],
   edges1: &[(T, T, usize)],
-  static_nodes2: &[T],
-  edges2: &[(T, T, usize)],
-  iterations: usize,
-  temperature: f64,
-  borders: &Option<Vec<usize>>,
-) -> (Vec<T>, i64)
+  static_nodes2: Option<&Vec<T>>,
+  edges2: Option<&Vec<(T, T, usize)>>,
+  max_iterations: usize,
+  start_temp: f64,
+  end_temp: f64,
+  temp_steps: usize,
+  groups: Option<&Vec<usize>>,
+  borders: Option<&Vec<usize>>,
+) -> (Vec<usize>, i64)
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
   let mapped_edges1 = map_edges(swappable_nodes, static_nodes1, edges1);
-  let mapped_edges2 = map_edges(swappable_nodes, static_nodes2, edges2);
 
-  let crossing_count =
-    _count_crossings(static_nodes1.len(), &mapped_edges1) + _count_crossings(static_nodes2.len(), &mapped_edges2);
-  let pairwise_matrix = add_matrix(
-    &get_pairwise_matrix(swappable_nodes.len(), static_nodes1.len(), &mapped_edges2),
-    &get_pairwise_matrix(swappable_nodes.len(), static_nodes2.len(), &mapped_edges2),
-  );
+  let mut crossing_count = _count_crossings(static_nodes1.len(), &mapped_edges1) as i64;
+  let mut pairwise_matrix = get_pairwise_matrix(swappable_nodes.len(), static_nodes1.len(), &mapped_edges1);
 
-  let (new_indices, new_count) = swap_nodes(
-    swappable_nodes.len(),
-    &pairwise_matrix,
-    iterations,
-    temperature,
-    crossing_count as i64,
-    (0..swappable_nodes.len()).collect_vec(),
-    borders,
-  );
-
-  (
-    new_indices.iter().map(|l| swappable_nodes[*l].clone()).collect_vec(),
-    new_count,
-  )
-}
-
-pub fn cooldown<T>(
-  swappable_nodes: &[T],
-  static_nodes: &[T],
-  edges: &[(T, T, usize)],
-  iterations: usize,
-  start_temp: f64,
-  end_temp: f64,
-  steps: usize,
-  borders: &Option<Vec<usize>>,
-) -> (Vec<T>, i64)
-where
-  T: Eq + Hash + Clone + Display + Debug,
-{
-  let mut temperature = start_temp;
-  let delta_t = (end_temp / start_temp).powf(1. / (steps as f64));
-
-  let mapped_edges = map_edges(swappable_nodes, static_nodes, edges);
-
-  let mut crossing_count = _count_crossings(static_nodes.len(), &mapped_edges) as i64;
-  let pairwise_matrix = get_pairwise_matrix(swappable_nodes.len(), static_nodes.len(), &mapped_edges);
-  let mut nodes = (0..swappable_nodes.len()).collect_vec();
-
-  for _ in 0..steps {
-    (nodes, crossing_count) = swap_nodes(
-      swappable_nodes.len(),
+  if let (Some(static_nodes2), Some(edges2)) = (static_nodes2, edges2) {
+    let mapped_edges2 = map_edges(swappable_nodes, static_nodes2, edges2);
+    crossing_count += _count_crossings(static_nodes2.len(), &mapped_edges2) as i64;
+    pairwise_matrix = add_matrix(
       &pairwise_matrix,
-      iterations,
-      temperature,
-      crossing_count as i64,
-      nodes,
-      borders,
+      &get_pairwise_matrix(swappable_nodes.len(), static_nodes2.len(), &mapped_edges2),
     );
-    temperature *= delta_t;
-  }
+  };
 
-  (
-    nodes.iter().map(|l| swappable_nodes[*l].clone()).collect_vec(),
-    crossing_count,
-  )
-}
+  let swappable_count = match groups {
+    Some(groups) => {
+      pairwise_matrix = aggregate_pairwise_matrix(&pairwise_matrix, groups);
+      groups.len()
+    }
+    None => swappable_nodes.len(),
+  };
 
-pub fn cooldown2<T>(
-  swappable_nodes: &[T],
-  static_nodes1: &[T],
-  edges1: &[(T, T, usize)],
-  static_nodes2: &[T],
-  edges2: &[(T, T, usize)],
-  iterations: usize,
-  start_temp: f64,
-  end_temp: f64,
-  steps: usize,
-  borders: &Option<Vec<usize>>,
-) -> (Vec<T>, i64)
-where
-  T: Eq + Hash + Clone + Display + Debug,
-{
   let mut temperature = start_temp;
-  let delta_t = (end_temp / start_temp).powf(1. / (steps as f64));
+  let delta_t: f64 = if temp_steps == 0 {
+    0.
+  } else {
+    (end_temp / start_temp).powf(1. / (temp_steps as f64 - 1.))
+  };
+  let mut new_indices = (0..swappable_count).collect_vec();
 
-  let mapped_edges1 = map_edges(swappable_nodes, static_nodes1, edges1);
-  let mapped_edges2 = map_edges(swappable_nodes, static_nodes2, edges2);
-
-  let mut crossing_count = (_count_crossings(static_nodes1.len(), &mapped_edges1)
-    + _count_crossings(static_nodes2.len(), &mapped_edges2)) as i64;
-  let pairwise_matrix = add_matrix(
-    &get_pairwise_matrix(swappable_nodes.len(), static_nodes1.len(), &mapped_edges2),
-    &get_pairwise_matrix(swappable_nodes.len(), static_nodes2.len(), &mapped_edges2),
-  );
-
-  let mut nodes = (0..swappable_nodes.len()).collect_vec();
-
-  for _ in 0..steps {
-    (nodes, crossing_count) = swap_nodes(
-      swappable_nodes.len(),
+  for _ in 0..temp_steps {
+    (new_indices, crossing_count) = swap_nodes(
+      swappable_count,
       &pairwise_matrix,
-      iterations,
+      max_iterations,
       temperature,
       crossing_count,
-      nodes,
+      (0..swappable_count).collect_vec(),
       borders,
     );
     temperature *= delta_t;
   }
 
-  (
-    nodes.iter().map(|l| swappable_nodes[*l].clone()).collect_vec(),
-    crossing_count,
-  )
+  (new_indices, crossing_count)
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::{count_crossings::count_crossings, mapping::swap_edges, utils::*};
+  use crate::{
+    count_crossings::count_crossings,
+    mapping::{reorder_nodes, swap_edges},
+    utils::generate_bipartite_graph,
+  };
 
   #[test]
   fn test_simple_graph() {
@@ -227,7 +133,10 @@ mod tests {
     );
     assert_eq!(count_crossings(&nodes_left, &nodes_right, &edges), 9);
 
-    let (new_nodes, expected_count) = reduce_crossings(&nodes_left, &nodes_right, &edges, 10, 0., &None);
+    let (new_indices, expected_count) =
+      reduce_crossings_final(&nodes_left, &nodes_right, &edges, None, None, 10, 0., 0., 1, None, None);
+    println!("{:?}", new_indices);
+    let new_nodes = reorder_nodes(&nodes_left, &new_indices);
     let actual_count = count_crossings(&new_nodes, &nodes_right, &edges) as i64;
     assert_eq!(expected_count, actual_count);
     assert_eq!(actual_count, 0);
@@ -242,8 +151,21 @@ mod tests {
     );
     assert_eq!(count_crossings(&nodes_right, &nodes_left, &inv_edges), 9);
 
-    let (new_nodes, expected_count) = reduce_crossings(&nodes_right, &nodes_left, &inv_edges, 10, 0., &None);
-    let actual_count = count_crossings(&nodes_left, &new_nodes, &edges) as i64;
+    let (new_indices, expected_count) = reduce_crossings_final(
+      &nodes_right,
+      &nodes_left,
+      &inv_edges,
+      None,
+      None,
+      10,
+      0.,
+      0.,
+      1,
+      None,
+      None,
+    );
+    let new_nodes = reorder_nodes(&nodes_right, &new_indices);
+    let actual_count: i64 = count_crossings(&nodes_left, &new_nodes, &edges) as i64;
     assert_eq!(expected_count, actual_count);
     assert_eq!(actual_count, 0);
   }
@@ -258,9 +180,33 @@ mod tests {
     let swapped_edges = swap_edges(&edges);
     let start_crossings = count_crossings(&nodes_left, &nodes_right, &edges) as i64;
 
-    let (new_order, mid_crossings) =
-      reduce_crossings(&nodes_left, &nodes_right, &edges, iterations, temperature, &None);
-    let (_, end_crossings) = reduce_crossings(&nodes_right, &new_order, &swapped_edges, iterations, temperature, &None);
+    let (new_indices, mid_crossings) = reduce_crossings_final(
+      &nodes_left,
+      &nodes_right,
+      &edges,
+      None,
+      None,
+      iterations,
+      temperature,
+      temperature,
+      1,
+      None,
+      None,
+    );
+    let new_nodes = reorder_nodes(&nodes_left, &new_indices);
+    let (_, end_crossings) = reduce_crossings_final(
+      &nodes_right,
+      &new_nodes,
+      &swapped_edges,
+      None,
+      None,
+      iterations,
+      temperature,
+      temperature,
+      1,
+      None,
+      None,
+    );
 
     assert!(mid_crossings < start_crossings, "{mid_crossings} !< {start_crossings}");
     assert!(end_crossings < mid_crossings, "{end_crossings} !< {mid_crossings}");
