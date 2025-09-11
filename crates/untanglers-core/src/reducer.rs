@@ -254,7 +254,7 @@ mod tests {
     let temperature = 2.;
     let iterations = 1000;
 
-    let (nodes_left, nodes_right, edges) = generate_graph(n);
+    let (nodes_left, nodes_right, edges) = generate_bipartite_graph(n);
     let swapped_edges = swap_edges(&edges);
     let start_crossings = count_crossings(&nodes_left, &nodes_right, &edges) as i64;
 

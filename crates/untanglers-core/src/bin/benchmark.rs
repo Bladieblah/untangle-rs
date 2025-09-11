@@ -4,13 +4,13 @@ use untanglers_core::{
   mapping::map_edges,
   pairwise::get_pairwise_matrix,
   reducer::swap_nodes,
-  utils::{generate_graph, timeit},
+  utils::{generate_bipartite_graph, timeit},
 };
 
 pub fn main() {
   env_logger::init();
 
-  let (nodes_left, nodes_right, edges) = generate_graph(2000);
+  let (nodes_left, nodes_right, edges) = generate_bipartite_graph(2000);
   log::info!(
     "Running benchmark with L = {} R = {} E = {}",
     nodes_left.len(),

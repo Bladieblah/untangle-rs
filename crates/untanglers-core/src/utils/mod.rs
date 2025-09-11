@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use matrixmultiply::dgemm;
+use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
 use rand::Rng;
 use std::fmt::Display;
@@ -16,18 +17,14 @@ where
   result
 }
 
-type GraphType = (Vec<i32>, Vec<i32>, Vec<(i32, i32, usize)>);
+type BipartiteGraphType = (Vec<i32>, Vec<i32>, Vec<(i32, i32, usize)>);
+type GraphType = (Vec<Vec<i32>>, Vec<Vec<(i32, i32, usize)>>);
 
-pub fn generate_graph(n_nodes: i32) -> GraphType {
-  let mut nodes_left = (0..n_nodes).collect_vec();
-  let mut nodes_right = (0..n_nodes).collect_vec();
-  let mut edges = Vec::<(i32, i32, usize)>::new();
-
+fn generate_edges(rng: &mut ThreadRng, n_nodes: i32) -> Vec<(i32, i32, usize)> {
   let mut l = 0;
   let mut r = 0;
-
-  let mut rng = rand::rng();
   let k = 3;
+  let mut edges = Vec::<(i32, i32, usize)>::new();
   while l < n_nodes - k && r < n_nodes - k {
     let dl = rng.random_range(1..k);
     for i in 0..dl {
@@ -42,10 +39,31 @@ pub fn generate_graph(n_nodes: i32) -> GraphType {
     r += dr;
   }
 
+  edges
+}
+
+pub fn generate_bipartite_graph(n_nodes: i32) -> BipartiteGraphType {
+  let mut nodes_left = (0..n_nodes).collect_vec();
+  let mut nodes_right = (0..n_nodes).collect_vec();
+
+  let mut rng = rand::rng();
+  let edges = generate_edges(&mut rng, n_nodes);
+
   nodes_left.shuffle(&mut rng);
   nodes_right.shuffle(&mut rng);
 
   (nodes_left, nodes_right, edges)
+}
+
+pub fn generate_multipartite_graph(n_layers: i32, n_nodes: i32) -> GraphType {
+  let mut nodes = (0..n_layers).map(|_l| (0..n_nodes).collect_vec()).collect_vec();
+
+  let mut rng = rand::rng();
+  let edges = (0..n_layers-1).map(|_l| generate_edges(&mut rng, n_nodes)).collect_vec();
+
+  (0..n_layers).for_each(|l| nodes[l as usize].shuffle(&mut rng));
+
+  (nodes, edges)
 }
 
 pub fn matmul(matrix_a: &[f64], matrix_b: &[f64], matrix_c: &mut [f64], m: usize, k: usize, n: usize) {
