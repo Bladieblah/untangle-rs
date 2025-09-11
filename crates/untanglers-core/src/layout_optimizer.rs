@@ -23,13 +23,11 @@ where
   pub fn new(node_layers: Vec<Vec<T>>, edges: Vec<Vec<(T, T, usize)>>) -> Self {
     let inverted_edges = edges.iter().map(|e| swap_edges(e)).collect_vec();
 
-    let this = Self {
+    Self {
       node_layers,
       edges,
       inverted_edges,
-    };
-
-    this
+    }
   }
 
   pub fn count_crossings(&self) -> usize {

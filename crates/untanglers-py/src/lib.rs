@@ -3,14 +3,14 @@ use untanglers_core as core;
 
 #[pyclass]
 struct LayoutOptimizer {
-  inner: core::optimizer::LayoutOptimizer<String>,
+  inner: core::layout_optimizer::LayoutOptimizer<String>,
 }
 
 #[pymethods]
 impl LayoutOptimizer {
   #[new]
   pub fn crossings_new(nodes_left: Vec<Vec<String>>, edges: Vec<Vec<(String, String, usize)>>) -> Self {
-    let inner = core::optimizer::LayoutOptimizer::<String>::new(nodes_left, edges);
+    let inner = core::layout_optimizer::LayoutOptimizer::<String>::new(nodes_left, edges);
     Self { inner }
   }
 
@@ -33,7 +33,6 @@ impl LayoutOptimizer {
   }
 }
 
-/// A Python module implemented in Rust.
 #[pymodule]
 mod untanglers {
   #[pymodule_export]
