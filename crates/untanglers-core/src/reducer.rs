@@ -119,7 +119,7 @@ where
       max_iterations,
       temperature,
       crossing_count,
-      (0..swappable_count).collect_vec(),
+      new_indices,
       borders,
     );
     temperature *= delta_t;

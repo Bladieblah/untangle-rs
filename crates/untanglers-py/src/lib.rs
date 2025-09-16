@@ -18,10 +18,10 @@ impl LayoutOptimizer {
     self.inner.swap_nodes(layer_index, max_iterations, temperature);
   }
 
-  pub fn cooldown(&mut self, layer_index: usize, max_iterations: usize, start_temp: f64, end_temp: f64, steps: usize) {
+  pub fn cooldown(&mut self, start_temp: f64, end_temp: f64, steps: usize, max_iterations: usize, layer_index: usize) {
     self
       .inner
-      .cooldown(layer_index, max_iterations, start_temp, end_temp, steps);
+      .cooldown(start_temp, end_temp, steps, max_iterations, layer_index);
   }
 
   pub fn get_nodes(&self) -> Vec<Vec<String>> {

@@ -85,7 +85,6 @@ where
     }
   }
 
-  #[allow(dead_code)]
   pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) -> i64 {
     let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
 
@@ -108,7 +107,6 @@ where
     new_count
   }
 
-  #[allow(dead_code)]
   pub fn cooldown(
     &mut self,
     start_temp: f64,
