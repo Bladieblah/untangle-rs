@@ -196,7 +196,7 @@ mod tests {
 
     let (new_indices, expected_count) =
       reduce_crossings_final(&nodes_left, &nodes_right, &edges, None, None, 10, 0., 0., 1, None, None);
-    println!("{:?}", new_indices);
+
     let new_nodes = reorder_nodes(&nodes_left, &new_indices);
     let actual_count = count_crossings(&new_nodes, &nodes_right, &edges) as i64;
     assert_eq!(expected_count, actual_count);

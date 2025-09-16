@@ -138,9 +138,8 @@ where
 
   pub fn optimize(&mut self, start_temp: f64, end_temp: f64, steps: usize, max_iterations: usize, passes: usize) -> i64 {
     let mut crossing_count = 0;
-    for pass in 0..passes {
+    for _pass in 0..passes {
       for i in 0..self.node_layers.len() {
-        println!("Pass {} layer {}", pass, i);
         crossing_count = self.cooldown(start_temp, end_temp, steps, max_iterations, i);
       }
     }

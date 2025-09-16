@@ -62,12 +62,78 @@ pub fn reorder_hierarchy(
   new_group_sizes
 }
 
+pub fn get_borders(
+  child_groups: &[usize],
+  parent_groups: &[usize]
+) -> Vec<usize> {
+  let mut borders = Vec::<usize>::with_capacity(parent_groups.len());
+
+  let mut parent_size: usize = 0;
+  let mut child_size: usize = 0;
+  let mut child_index: usize = 0;
+  for group_size in parent_groups {
+    parent_size += group_size;
+    loop {
+      child_size += child_groups[child_index];
+      child_index += 1;
+      if child_size == parent_size {
+        borders.push(child_index - 1);
+        break
+      }
+
+      if child_size > parent_size {
+        panic!("Layers out of sync, did you validate them?");
+      }
+    }
+  }
+
+  borders
+}
+
+pub fn validate_hierarchy(
+  layer_index: usize,
+  node_count: usize,
+  hierarchy: &Vec<Vec<usize>>,
+) {
+  if hierarchy.len() == 0 {
+    return
+  }
+
+  for level_index in 0..hierarchy.len() {
+    let size: usize = hierarchy[level_index].iter().sum();
+
+    if size != node_count {
+      panic!("Hierarchy at layer {}, level {} has total size {} != node count {}", layer_index, level_index, size, node_count);
+    }
+
+    if level_index == hierarchy.len() - 1 { continue }
+
+    let mut self_size: usize = 0;
+    let mut next_size: usize = 0;
+    let mut next_index: usize = 0;
+    for group_size in &hierarchy[level_index] {
+      self_size += group_size;
+      loop {
+        next_size += hierarchy[level_index + 1][next_index];
+        next_index += 1;
+        if next_size == self_size {
+          break
+        }
+
+        if next_size > self_size {
+          panic!("Hierarchy at layer {}, level {} does not align with its child level, {} > {}", layer_index, level_index, next_index, self_size);
+        }
+      }
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
 
   #[test]
-  fn test_reorder_groups() {
+  fn test_reorder_nodes_by_group() {
     let nodes = vec!["A", "B", "C", "D", "E", "F", "G"];
     let group_sizes: Vec<usize> = vec![2, 2, 3];
     let new_order: Vec<usize> = vec![2, 1, 0];
@@ -77,12 +143,27 @@ mod tests {
   }
 
   #[test]
-  fn test_reorder_group() {
+  fn test_reorder_group_sizes() {
     let parent_groups: Vec<usize> = vec![30, 20, 35, 15];
     let child_groups: Vec<usize> = vec![10, 13, 7, 3, 3, 14, 20, 15, 15];
     let new_order: Vec<usize> = vec![1, 3, 0, 2];
     let new_child_groups = reorder_group(&parent_groups, &child_groups, &new_order);
     assert_eq!(new_child_groups, vec![3, 3, 14, 15, 10, 13, 7, 20, 15]);
+  }
+
+  #[test]
+  fn test_get_borders() {
+    let groups1: Vec<usize> = vec![50, 50];
+    let groups2: Vec<usize> = vec![30, 20, 35, 15];
+    let groups3: Vec<usize> = vec![10, 13, 7, 3, 3, 14, 20, 15, 15];
+
+    let borders1: Vec<usize> = vec![1, 3];
+    let borders2: Vec<usize> = vec![5, 8];
+    let borders3: Vec<usize> = vec![2, 5, 7, 8];
+
+    assert_eq!(get_borders(&groups2, &groups1), borders1);
+    assert_eq!(get_borders(&groups3, &groups1), borders2);
+    assert_eq!(get_borders(&groups3, &groups2), borders3);
   }
 
   #[test]
@@ -92,6 +173,8 @@ mod tests {
       vec![30, 20, 35, 15],
       vec![10, 13, 7, 3, 3, 14, 20, 15, 15],
     ];
+
+    validate_hierarchy(0, 100, &group_layers);
 
     let new_order: Vec<usize> = vec![1, 0];
     let new_group_layers = reorder_hierarchy(&group_layers, 0, &new_order);
