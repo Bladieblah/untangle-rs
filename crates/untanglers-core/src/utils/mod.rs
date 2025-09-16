@@ -114,3 +114,33 @@ pub fn add_matrix(matrix1: &[f64], matrix2: &[f64]) -> Vec<f64> {
   }
   (0..matrix1.len()).map(|i| matrix1[i] + matrix2[i]).collect_vec()
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_add_matrix() {
+    let mat1 = vec![
+       0.,  1.,  0., 0.,
+      -1.,  0.,  3., 4.,
+       0., -3.,  0., 2.,
+       0., -4., -2., 0.,
+    ];
+    let mat2 = vec![
+       0., -1.,  1., 0.,
+       1.,  0.,  0., 2.,
+      -1.,  0.,  0., 1.,
+       0., -2., -1., 0.,
+    ];
+    let result = vec![
+       0.,  0.,  1., 0.,
+       0.,  0.,  3., 6.,
+      -1., -3.,  0., 3.,
+       0., -6., -3., 0.,
+    ];
+
+    assert_eq!(add_matrix(&mat1, &mat2), result);
+  }
+}
+

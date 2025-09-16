@@ -3,8 +3,8 @@ use std::hash::Hash;
 
 use itertools::Itertools;
 
-use crate::count_crossings::count_crossings;
-use crate::mapping::{reorder_nodes, swap_edges};
+use crate::count_crossings::{_count_crossings, count_crossings};
+use crate::mapping::{map_edges, reorder_nodes, swap_edges};
 use crate::reducer::reduce_crossings_final;
 
 pub struct LayoutOptimizer<T>
@@ -28,6 +28,19 @@ where
       edges,
       inverted_edges,
     }
+  }
+
+  pub fn count_layer_crossings(&self, layer_index: usize) -> i64 {
+    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
+    let mapped_edges1 = map_edges(&self.node_layers[layer_index], nodes1, edges1);
+    let mut crossing_count = _count_crossings(nodes1.len(), &mapped_edges1) as i64;
+
+    if let (Some(nodes2), Some(edges2)) = (nodes2, edges2) {
+      let mapped_edges2 = map_edges(&self.node_layers[layer_index], nodes2, edges2);
+      crossing_count += _count_crossings(nodes2.len(), &mapped_edges2) as i64;
+    };
+
+    crossing_count
   }
 
   pub fn count_crossings(&self) -> usize {
@@ -98,11 +111,11 @@ where
   #[allow(dead_code)]
   pub fn cooldown(
     &mut self,
-    layer_index: usize,
-    max_iterations: usize,
     start_temp: f64,
     end_temp: f64,
     steps: usize,
+    max_iterations: usize,
+    layer_index: usize,
   ) -> i64 {
     let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
 
@@ -125,11 +138,12 @@ where
     new_count
   }
 
-  pub fn optimize(&mut self, start_temp: f64, end_temp: f64, steps: usize, iterations: usize, passes: usize) -> i64 {
+  pub fn optimize(&mut self, start_temp: f64, end_temp: f64, steps: usize, max_iterations: usize, passes: usize) -> i64 {
     let mut crossing_count = 0;
-    for _ in 0..passes {
+    for pass in 0..passes {
       for i in 0..self.node_layers.len() {
-        crossing_count = self.cooldown(i, iterations, start_temp, end_temp, steps);
+        println!("Pass {} layer {}", pass, i);
+        crossing_count = self.cooldown(start_temp, end_temp, steps, max_iterations, i);
       }
     }
 
@@ -145,6 +159,57 @@ where
 mod tests {
   use super::*;
   use crate::utils::*;
+
+  #[test]
+  fn test_get_adjacent_layers() {
+    let optimizer = LayoutOptimizer::new(
+      vec![
+        vec![1,2,3],
+        vec![4,5,6],
+        vec![7,8,9],
+      ],
+      vec![
+        vec![(1,4,2), (1,5,1)],
+        vec![(4,8,3), (6,7,4)],
+      ]
+    );
+
+    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(0);
+    assert_eq!(nodes1, vec![4,5,6]);
+    assert_eq!(nodes2, None);
+    assert_eq!(edges1, vec![(1,4,2), (1,5,1)]);
+    assert_eq!(edges2, None);
+
+    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(1);
+    assert_eq!(nodes1, vec![1,2,3]);
+    assert_eq!(nodes2, Some(&vec![7,8,9]));
+    assert_eq!(edges1, vec![(4,1,2), (5,1,1)]);
+    assert_eq!(edges2, Some(&vec![(4,8,3), (6,7,4)]));
+
+    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(2);
+    assert_eq!(nodes1, vec![4,5,6]);
+    assert_eq!(nodes2, None);
+    assert_eq!(edges1, vec![(8,4,3), (7,6,4)]);
+    assert_eq!(edges2, None);
+
+  }
+
+  #[test]
+  fn test_cooldown() {
+    let n = 200;
+
+    let (nodes, edges) = generate_multipartite_graph(7, n);
+    let mut optimizer = LayoutOptimizer::new(nodes, edges);
+    let start_crossings = optimizer.count_crossings() as i64;
+    let end_crossings = timeit("Optimize", || optimizer.cooldown(1., 0.1, 5, 200, 1));
+
+    println!("Improved from {} to {}", start_crossings, end_crossings);
+    assert!(start_crossings > end_crossings);
+    assert!(end_crossings > 0);
+
+    let real_crossings = optimizer.count_layer_crossings(1);
+    assert_eq!(end_crossings, real_crossings);
+  }
 
   #[test]
   fn test_optimize() {

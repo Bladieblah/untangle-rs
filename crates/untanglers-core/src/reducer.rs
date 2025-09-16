@@ -36,6 +36,11 @@ pub fn swap_nodes(
           crossing_count -= contribution as i64;
           // println!("Swapped nodes {} <-> {} with contrib {} new count = {}", node_a, node_b, contribution, crossing_count);
         }
+
+        if crossing_count < 0 {
+          println!("[ERROR] Swapped nodes {} <-> {} with contrib {} new count = {}", node_a, node_b, contribution, crossing_count);
+          panic!("Crossing count turned negative: {}", crossing_count);
+        }
       }
 
       if crossing_count == 0 {
@@ -45,6 +50,32 @@ pub fn swap_nodes(
   }
 
   (new_nodes, crossing_count)
+}
+
+fn matrix_and_count<T>(
+  swappable_nodes: &[T],
+  static_nodes1: &[T],
+  edges1: &[(T, T, usize)],
+  static_nodes2: Option<&Vec<T>>,
+  edges2: Option<&Vec<(T, T, usize)>>
+) -> (i64, Vec<f64>)
+where
+  T: Eq + Hash + Clone + Display + Debug,
+{
+  let mapped_edges1 = map_edges(swappable_nodes, static_nodes1, edges1);
+  let mut crossing_count = _count_crossings(static_nodes1.len(), &mapped_edges1) as i64;
+  let mut pairwise_matrix = get_pairwise_matrix(swappable_nodes.len(), static_nodes1.len(), &mapped_edges1);
+
+  if let (Some(static_nodes2), Some(edges2)) = (static_nodes2, edges2) {
+    let mapped_edges2 = map_edges(swappable_nodes, static_nodes2, edges2);
+    crossing_count += _count_crossings(static_nodes2.len(), &mapped_edges2) as i64;
+    pairwise_matrix = add_matrix(
+      &pairwise_matrix,
+      &get_pairwise_matrix(swappable_nodes.len(), static_nodes2.len(), &mapped_edges2),
+    );
+  };
+
+  (crossing_count, pairwise_matrix)
 }
 
 pub fn reduce_crossings_final<T>(
@@ -63,19 +94,7 @@ pub fn reduce_crossings_final<T>(
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
-  let mapped_edges1 = map_edges(swappable_nodes, static_nodes1, edges1);
-
-  let mut crossing_count = _count_crossings(static_nodes1.len(), &mapped_edges1) as i64;
-  let mut pairwise_matrix = get_pairwise_matrix(swappable_nodes.len(), static_nodes1.len(), &mapped_edges1);
-
-  if let (Some(static_nodes2), Some(edges2)) = (static_nodes2, edges2) {
-    let mapped_edges2 = map_edges(swappable_nodes, static_nodes2, edges2);
-    crossing_count += _count_crossings(static_nodes2.len(), &mapped_edges2) as i64;
-    pairwise_matrix = add_matrix(
-      &pairwise_matrix,
-      &get_pairwise_matrix(swappable_nodes.len(), static_nodes2.len(), &mapped_edges2),
-    );
-  };
+  let (mut crossing_count, mut pairwise_matrix) = matrix_and_count(swappable_nodes, static_nodes1, edges1, static_nodes2, edges2);
 
   let swappable_count = match groups {
     Some(groups) => {
@@ -117,6 +136,48 @@ mod tests {
     mapping::{reorder_nodes, swap_edges},
     utils::generate_bipartite_graph,
   };
+
+  #[test]
+  fn test_middle_layer() {
+    let (crossing_count, pairwise_matrix) = matrix_and_count(
+      &vec![4,5,6],
+      &vec![1,2,3],
+      &vec![(4,1,2), (5,1,1), (4,2,1), (6,3,10)],
+      Some(&vec![7,8,9]),
+      Some(&vec![(4,8,3), (5,7,2), (6,9,5)]),
+    );
+
+    assert_eq!(crossing_count, 7);
+
+    let expected_matrix = vec![
+      0., 7., -45.,
+      -7., 0., -20.,
+      45., 20., 0.
+    ];
+    assert_eq!(pairwise_matrix, expected_matrix);
+
+    let (new_nodes, new_count) = swap_nodes(3, &pairwise_matrix, 1, 1e-5, crossing_count, vec![0,1,2], None);
+    assert_eq!(new_count, 0);
+    assert_eq!(new_nodes, vec![1,0,2]);
+
+
+    let (crossing_count, pairwise_matrix) = matrix_and_count(
+      &vec![5,4,6],
+      &vec![1,2,3],
+      &vec![(4,1,2), (5,1,1), (4,2,1), (6,3,10)],
+      Some(&vec![7,8,9]),
+      Some(&vec![(4,8,3), (5,7,2), (6,9,5)]),
+    );
+
+    assert_eq!(crossing_count, 0);
+
+    let expected_matrix = vec![
+      0., -7., -20.,
+      7., 0., -45.,
+      20., 45., 0.
+    ];
+    assert_eq!(pairwise_matrix, expected_matrix);
+  }
 
   #[test]
   fn test_simple_graph() {
@@ -171,7 +232,7 @@ mod tests {
   }
 
   #[test]
-  fn test_difficult_graph2() {
+  fn test_difficult_graph() {
     let n = 50;
     let temperature = 2.;
     let iterations = 1000;
@@ -202,13 +263,15 @@ mod tests {
       None,
       iterations,
       temperature,
-      temperature,
-      1,
+      temperature / 10.,
+      2,
       None,
       None,
     );
 
     assert!(mid_crossings < start_crossings, "{mid_crossings} !< {start_crossings}");
+    assert!(mid_crossings > 0, "{mid_crossings} < 0");
     assert!(end_crossings < mid_crossings, "{end_crossings} !< {mid_crossings}");
+    assert!(end_crossings > 0, "{end_crossings} < 0");
   }
 }
