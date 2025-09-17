@@ -1,5 +1,6 @@
 pub mod aggregation;
 pub mod count_crossings;
+pub mod error;
 pub mod hierarchy;
 pub mod hierarchy_optimizer;
 pub mod layout_optimizer;

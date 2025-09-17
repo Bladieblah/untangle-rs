@@ -1,6 +1,12 @@
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use untanglers_core::error::OptimizerError;
 use untanglers_core as core;
 use untanglers_core::optimizer_ops::OptimizerOps;
+
+fn to_pyerr(err: OptimizerError) -> PyErr {
+    PyValueError::new_err(err.to_string())
+}
 
 #[pyclass]
 struct LayoutOptimizer {
@@ -10,9 +16,9 @@ struct LayoutOptimizer {
 #[pymethods]
 impl LayoutOptimizer {
   #[new]
-  pub fn crossings_new(nodes_left: Vec<Vec<String>>, edges: Vec<Vec<(String, String, usize)>>) -> Self {
-    let inner = core::layout_optimizer::LayoutOptimizer::<String>::new(nodes_left, edges);
-    Self { inner }
+  pub fn crossings_new(nodes_left: Vec<Vec<String>>, edges: Vec<Vec<(String, String, usize)>>) -> PyResult<Self> {
+    let inner = core::layout_optimizer::LayoutOptimizer::<String>::new(nodes_left, edges).map_err(to_pyerr)?;
+    Ok(Self { inner })
   }
 
   pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) {

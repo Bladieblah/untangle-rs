@@ -1,10 +1,12 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
+use crate::error::OptimizerError;
 use crate::mapping::reorder_nodes;
 use crate::optimizer::Optimizer;
 use crate::optimizer_ops::{impl_optimizer_ops, OptimizerInternalOps, OptimizerOps};
 use crate::reducer::reduce_crossings;
+use crate::utils::validate_layers;
 
 pub struct LayoutOptimizer<T>
 where
@@ -19,9 +21,11 @@ impl<T> LayoutOptimizer<T>
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
-  pub fn new(node_layers: Vec<Vec<T>>, edges: Vec<Vec<(T, T, usize)>>) -> Self {
+  pub fn new(node_layers: Vec<Vec<T>>, edges: Vec<Vec<(T, T, usize)>>) -> Result<Self, OptimizerError> {
+    validate_layers(&node_layers, &edges)?;
+
     let optimizer = Optimizer::new(node_layers, edges);
-    Self { optimizer }
+    Ok(Self { optimizer })
   }
 
   pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) -> i64 {
@@ -104,7 +108,7 @@ mod tests {
     let n = 200;
 
     let (nodes, edges) = generate_multipartite_graph(7, n);
-    let mut optimizer = LayoutOptimizer::new(nodes, edges);
+    let mut optimizer = LayoutOptimizer::new(nodes, edges).unwrap();
     let start_crossings = optimizer.count_crossings() as i64;
     let end_crossings = timeit("Optimize", || optimizer.cooldown(1., 0.1, 5, 200, 1));
 
@@ -121,7 +125,7 @@ mod tests {
     let n = 200;
 
     let (nodes, edges) = generate_multipartite_graph(7, n);
-    let mut optimizer = LayoutOptimizer::new(nodes, edges);
+    let mut optimizer = LayoutOptimizer::new(nodes, edges).unwrap();
     let start_crossings = optimizer.count_crossings() as i64;
     let end_crossings = timeit("Optimize", || optimizer.optimize(1., 0.1, 5, 200, 20));
 

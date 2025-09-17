@@ -1,11 +1,13 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
+use crate::error::OptimizerError;
 use crate::hierarchy::{groups_and_borders, reorder_hierarchy, reorder_node_groups};
 use crate::mapping::reorder_nodes;
 use crate::optimizer::Optimizer;
 use crate::optimizer_ops::{impl_optimizer_ops, OptimizerInternalOps, OptimizerOps};
 use crate::reducer::reduce_crossings;
+use crate::utils::validate_layers;
 
 type Hierarchy = Vec<Vec<Vec<usize>>>;
 
@@ -23,9 +25,15 @@ impl<T> HierarchyOptimizer<T>
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
-  pub fn new(node_layers: Vec<Vec<T>>, edges: Vec<Vec<(T, T, usize)>>, hierarchy: Hierarchy) -> Self {
+  pub fn new(node_layers: Vec<Vec<T>>, edges: Vec<Vec<(T, T, usize)>>, hierarchy: Hierarchy) -> Result<Self, OptimizerError> {
+    if hierarchy.len() != node_layers.len() {
+      return Err(OptimizerError::HierarchyMismatch { hierarchy: hierarchy.len(), layers: node_layers.len() });
+    }
+
+    validate_layers(&node_layers, &edges)?;
+
     let optimizer = Optimizer::new(node_layers, edges);
-    Self { optimizer, hierarchy }
+    Ok(Self { optimizer, hierarchy })
   }
 
   pub fn swap_nodes(
@@ -140,6 +148,51 @@ mod tests {
 use super::*;
   use crate::{utils::*};
 
+  #[test]
+  fn test_validation() {
+    let optimizer = HierarchyOptimizer::new(
+      vec![vec![0,1,2]],
+      vec![],
+      vec![]
+    );
+    match optimizer {
+      Err(OptimizerError::HierarchyMismatch { hierarchy, layers }) => {
+        assert_eq!(hierarchy, 0);
+        assert_eq!(layers, 1);
+      },
+      Err(other) => panic!("Unexpected error: {}", other),
+      Ok(_) => panic!("Expected an error"),
+    }
+
+    let optimizer = HierarchyOptimizer::new(
+      vec![vec![0,1,2],vec![3,4,5]],
+      vec![],
+      vec![vec![], vec![]]
+    );
+    match optimizer {
+      Err(OptimizerError::EdgeLayerMismatch { edges, layers }) => {
+        assert_eq!(edges, 0);
+        assert_eq!(layers, 2);
+      }
+      Err(other) => panic!("Unexpected error: {}", other),
+      Ok(_) => panic!("Expected an error"),
+    }
+
+    let optimizer = HierarchyOptimizer::new(
+      vec![vec![0,1,2],vec![3,4,5]],
+      vec![vec![(0, 6, 1)]],
+      vec![vec![], vec![]]
+    );
+    match optimizer {
+      Err(OptimizerError::MissingNode { node_name, layer_index}) => {
+        assert_eq!(node_name, "6".to_string());
+        assert_eq!(layer_index, 1);
+      }
+      Err(other) => panic!("Unexpected error: {}", other),
+      Ok(_) => panic!("Expected an error"),
+    }
+  }
+
   fn get_clusters(hierarchy: &Hierarchy, layer_index: usize, nodes: &[Vec<i32>]) -> HashMap<usize, HashSet<i32>> {
     let mut clusters = HashMap::<usize, HashSet<i32>>::new();
 
@@ -167,7 +220,7 @@ use super::*;
 
     let (nodes, edges) = generate_multipartite_graph(3, n);
     let clusters = get_clusters(&hierarchy, 1, &nodes);
-    let mut optimizer = HierarchyOptimizer::new(nodes, edges, hierarchy);
+    let mut optimizer = HierarchyOptimizer::new(nodes, edges, hierarchy).unwrap();
     let mut start_crossings = optimizer.count_crossings() as i64;
 
     for granularity in vec![
@@ -202,7 +255,7 @@ use super::*;
 
     let (nodes, edges) = generate_multipartite_graph(3, n);
     let clusters = get_clusters(&hierarchy, 1, &nodes);
-    let mut optimizer = HierarchyOptimizer::new(nodes, edges, hierarchy);
+    let mut optimizer = HierarchyOptimizer::new(nodes, edges, hierarchy).unwrap();
     let start_crossings = optimizer.count_crossings() as i64;
     
     let end_crossings = timeit("Optimize", || optimizer.optimize(1., 0.1, 5, 200, 20));

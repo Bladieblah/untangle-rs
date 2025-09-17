@@ -6,6 +6,8 @@ use rand::Rng;
 use std::fmt::Display;
 use std::time::Instant;
 
+use crate::error::OptimizerError;
+
 pub fn timeit<F, R>(label: &str, f: F) -> R
 where
   F: FnOnce() -> R,
@@ -87,6 +89,27 @@ pub fn matmul(matrix_a: &[f64], matrix_b: &[f64], matrix_c: &mut [f64], m: usize
       1,
     )
   }
+}
+
+pub fn validate_layers<T>(nodes: &[Vec<T>], edges: &[Vec<(T, T, usize)>]) -> Result<(), OptimizerError>
+where T: Clone + Display + Eq,
+{
+  if edges.len() != nodes.len() - 1 {
+    return Err(OptimizerError::EdgeLayerMismatch { edges: edges.len(), layers: nodes.len() });
+  }
+
+  for layer_index in 0..edges.len() {
+    for (node_a, node_b, _) in &edges[layer_index] {
+      if !nodes[layer_index].contains(node_a) {
+        return Err(OptimizerError::MissingNode { node_name: node_a.clone().to_string(), layer_index: layer_index })
+      }
+      if !nodes[layer_index + 1].contains(node_b) {
+        return Err(OptimizerError::MissingNode { node_name: node_b.clone().to_string(), layer_index: layer_index + 1 })
+      }
+    }
+  }
+
+  Ok(())
 }
 
 #[allow(dead_code)]
