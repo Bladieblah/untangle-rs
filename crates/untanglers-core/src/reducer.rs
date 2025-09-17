@@ -17,7 +17,7 @@ pub fn swap_nodes(
   temperature: f64,
   mut crossing_count: i64,
   nodes: Vec<usize>,
-  borders: Option<&Vec<usize>>,
+  borders: &Option<Vec<usize>>,
 ) -> (Vec<usize>, i64) {
   let mut new_nodes = nodes.clone();
   let indices = match borders {
@@ -77,7 +77,7 @@ where
   (crossing_count, pairwise_matrix)
 }
 
-pub fn reduce_crossings_final<T>(
+pub fn reduce_crossings<T>(
   swappable_nodes: &[T],
   static_nodes1: &[T],
   edges1: &[(T, T, usize)],
@@ -87,8 +87,8 @@ pub fn reduce_crossings_final<T>(
   start_temp: f64,
   end_temp: f64,
   temp_steps: usize,
-  groups: Option<&Vec<usize>>,
-  borders: Option<&Vec<usize>>,
+  groups: Option<&[usize]>,
+  borders: Option<Vec<usize>>,
 ) -> (Vec<usize>, i64)
 where
   T: Eq + Hash + Clone + Display + Debug,
@@ -119,7 +119,7 @@ where
       temperature,
       crossing_count,
       new_indices,
-      borders,
+      &borders,
     );
     temperature *= delta_t;
   }
@@ -155,7 +155,7 @@ mod tests {
     ];
     assert_eq!(pairwise_matrix, expected_matrix);
 
-    let (new_nodes, new_count) = swap_nodes(3, &pairwise_matrix, 1, 1e-5, crossing_count, vec![0,1,2], None);
+    let (new_nodes, new_count) = swap_nodes(3, &pairwise_matrix, 1, 1e-5, crossing_count, vec![0,1,2], &None);
     assert_eq!(new_count, 0);
     assert_eq!(new_nodes, vec![1,0,2]);
 
@@ -194,7 +194,7 @@ mod tests {
     assert_eq!(count_crossings(&nodes_left, &nodes_right, &edges), 9);
 
     let (new_indices, expected_count) =
-      reduce_crossings_final(&nodes_left, &nodes_right, &edges, None, None, 10, 0., 0., 1, None, None);
+      reduce_crossings(&nodes_left, &nodes_right, &edges, None, None, 10, 0., 0., 1, None, None);
 
     let new_nodes = reorder_nodes(&nodes_left, &new_indices);
     let actual_count = count_crossings(&new_nodes, &nodes_right, &edges) as i64;
@@ -211,7 +211,7 @@ mod tests {
     );
     assert_eq!(count_crossings(&nodes_right, &nodes_left, &inv_edges), 9);
 
-    let (new_indices, expected_count) = reduce_crossings_final(
+    let (new_indices, expected_count) = reduce_crossings(
       &nodes_right,
       &nodes_left,
       &inv_edges,
@@ -240,7 +240,7 @@ mod tests {
     let swapped_edges = swap_edges(&edges);
     let start_crossings = count_crossings(&nodes_left, &nodes_right, &edges) as i64;
 
-    let (new_indices, mid_crossings) = reduce_crossings_final(
+    let (new_indices, mid_crossings) = reduce_crossings(
       &nodes_left,
       &nodes_right,
       &edges,
@@ -254,7 +254,7 @@ mod tests {
       None,
     );
     let new_nodes = reorder_nodes(&nodes_left, &new_indices);
-    let (_, end_crossings) = reduce_crossings_final(
+    let (_, end_crossings) = reduce_crossings(
       &nodes_right,
       &new_nodes,
       &swapped_edges,

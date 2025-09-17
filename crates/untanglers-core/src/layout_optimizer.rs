@@ -4,7 +4,7 @@ use std::hash::Hash;
 use crate::mapping::reorder_nodes;
 use crate::optimizer::Optimizer;
 use crate::optimizer_ops::{impl_optimizer_ops, OptimizerOps, OptimizerInternalOps};
-use crate::reducer::reduce_crossings_final;
+use crate::reducer::reduce_crossings;
 
 pub struct LayoutOptimizer<T>
 where
@@ -29,7 +29,7 @@ where
   pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) -> i64 {
     let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
 
-    let (new_indices, new_count) = reduce_crossings_final(
+    let (new_indices, new_count) = reduce_crossings(
       &self.optimizer.node_layers[layer_index],
       nodes1,
       edges1,
@@ -58,7 +58,7 @@ where
   ) -> i64 {
     let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
 
-    let (new_indices, new_count) = reduce_crossings_final(
+    let (new_indices, new_count) = reduce_crossings(
       &self.optimizer.node_layers[layer_index],
       nodes1,
       edges1,

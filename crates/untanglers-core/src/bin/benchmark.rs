@@ -34,7 +34,7 @@ pub fn main() {
       10.,
       crossing_count,
       nodes,
-      None,
+      &None,
     )
   });
   log::info!("1e3: {} edge crossings", crossing_count);
@@ -47,7 +47,7 @@ pub fn main() {
       1.,
       crossing_count,
       nodes,
-      None,
+      &None,
     )
   });
   log::info!("1e4: {} edge crossings", crossing_count);
@@ -60,7 +60,7 @@ pub fn main() {
       0.1,
       crossing_count,
       nodes,
-      None,
+      &None,
     )
   });
   log::info!("1e5: {} edge crossings", crossing_count);

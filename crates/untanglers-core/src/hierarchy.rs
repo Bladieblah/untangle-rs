@@ -5,7 +5,7 @@ use itertools::Itertools;
 
 pub fn reorder_node_groups<T>(nodes: &[T], group_sizes: &[usize], new_indices: &[usize]) -> Vec<T>
 where
-  T: Eq + Hash + Clone + Display + Debug + Copy,
+  T: Eq + Hash + Clone + Display + Debug,
 {
   let mut new_nodes = Vec::<T>::with_capacity(nodes.len());
 
@@ -41,12 +41,12 @@ pub fn reorder_hierarchy(
   layer_index: usize,
   new_order: &[usize],
 ) -> Vec<Vec<usize>> {
-  // group_sizes_layers should be in order coarse -> fine
+  // group_sizes_layers should be in order fine -> coarse
   let layer_count = group_sizes_layers.len();
   let mut new_group_sizes = Vec::<Vec<usize>>::with_capacity(layer_count);
 
   for l in 0..layer_count {
-    if l < layer_index {
+    if l > layer_index {
       new_group_sizes.push(group_sizes_layers[l].clone());
     } else if l == layer_index {
       new_group_sizes.push(new_order.iter().map(|i| group_sizes_layers[l][*i]).collect_vec());
@@ -106,7 +106,7 @@ pub fn validate_hierarchy(
       panic!("Hierarchy at layer {}, level {} has total size {} != node count {}", layer_index, level_index, size, node_count);
     }
 
-    if level_index == hierarchy.len() - 1 { continue }
+    if level_index == 0 { continue }
 
     let mut self_size: usize = 0;
     let mut next_size: usize = 0;
@@ -114,7 +114,7 @@ pub fn validate_hierarchy(
     for group_size in &hierarchy[level_index] {
       self_size += group_size;
       loop {
-        next_size += hierarchy[level_index + 1][next_index];
+        next_size += hierarchy[level_index - 1][next_index];
         next_index += 1;
         if next_size == self_size {
           break
@@ -169,21 +169,21 @@ mod tests {
   #[test]
   fn test_reorder_hierarchy() {
     let group_layers: Vec<Vec<usize>> = vec![
-      vec![50, 50],
-      vec![30, 20, 35, 15],
       vec![10, 13, 7, 3, 3, 14, 20, 15, 15],
+      vec![30, 20, 35, 15],
+      vec![50, 50],
     ];
 
     validate_hierarchy(0, 100, &group_layers);
 
     let new_order: Vec<usize> = vec![1, 0];
-    let new_group_layers = reorder_hierarchy(&group_layers, 0, &new_order);
+    let new_group_layers = reorder_hierarchy(&group_layers, 2, &new_order);
     assert_eq!(
       new_group_layers,
       vec![
-        vec![50, 50],
-        vec![35, 15, 30, 20],
         vec![20, 15, 15, 10, 13, 7, 3, 3, 14],
+        vec![35, 15, 30, 20],
+        vec![50, 50],
       ]
     );
 
@@ -192,9 +192,9 @@ mod tests {
     assert_eq!(
       new_group_layers,
       vec![
-        vec![50, 50],
-        vec![20, 15, 30, 35],
         vec![3, 3, 14, 15, 10, 13, 7, 20, 15],
+        vec![20, 15, 30, 35],
+        vec![50, 50],
       ]
     );
   }
