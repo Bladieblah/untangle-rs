@@ -34,7 +34,6 @@ pub fn swap_nodes(
           new_nodes[*j] = node_b;
           new_nodes[*j + 1] = node_a;
           crossing_count -= contribution as i64;
-          // println!("Swapped nodes {} <-> {} with contrib {} new count = {}", node_a, node_b, contribution, crossing_count);
         }
 
         if crossing_count < 0 {

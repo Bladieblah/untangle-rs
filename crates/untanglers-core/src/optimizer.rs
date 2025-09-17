@@ -1,0 +1,131 @@
+use std::fmt::{Debug, Display};
+use std::hash::Hash;
+
+use itertools::Itertools;
+
+use crate::count_crossings::{_count_crossings, count_crossings};
+use crate::mapping::{map_edges, swap_edges};
+
+pub struct Optimizer<T>
+where
+  T: Eq + Hash + Clone + Display + Debug,
+{
+  pub node_layers: Vec<Vec<T>>,
+  pub edges: Vec<Vec<(T, T, usize)>>,
+  pub inverted_edges: Vec<Vec<(T, T, usize)>>,
+}
+
+
+
+impl<T> Optimizer<T>
+where
+  T: Eq + Hash + Clone + Display + Debug,
+{
+  pub fn new(node_layers: Vec<Vec<T>>, edges: Vec<Vec<(T, T, usize)>>) -> Self {
+    let inverted_edges = edges.iter().map(|e| swap_edges(e)).collect_vec();
+
+    Self {
+      node_layers,
+      edges,
+      inverted_edges,
+    }
+  }
+
+  pub fn count_layer_crossings(&self, layer_index: usize) -> i64 {
+    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
+    let mapped_edges1 = map_edges(&self.node_layers[layer_index], nodes1, edges1);
+    let mut crossing_count = _count_crossings(nodes1.len(), &mapped_edges1) as i64;
+
+    if let (Some(nodes2), Some(edges2)) = (nodes2, edges2) {
+      let mapped_edges2 = map_edges(&self.node_layers[layer_index], nodes2, edges2);
+      crossing_count += _count_crossings(nodes2.len(), &mapped_edges2) as i64;
+    };
+
+    crossing_count
+  }
+
+  pub fn count_crossings(&self) -> usize {
+    let mut total_count = 0;
+
+    for i in 0..self.node_layers.len() - 1 {
+      total_count += count_crossings(&self.node_layers[i], &self.node_layers[i + 1], &self.edges[i])
+    }
+
+    total_count
+  }
+
+  #[allow(clippy::type_complexity)]
+  pub fn get_adjacent_layers(
+    &self,
+    layer_index: usize,
+  ) -> (&[T], &[(T, T, usize)], Option<&Vec<T>>, Option<&Vec<(T, T, usize)>>) {
+    if layer_index >= self.node_layers.len() {
+      panic!(
+        "Layer index out of range: {} > {}",
+        layer_index,
+        self.node_layers.len() - 1
+      );
+    }
+
+    if layer_index == 0 {
+      (&self.node_layers[layer_index + 1], &self.edges[layer_index], None, None)
+    } else if layer_index == self.node_layers.len() - 1 {
+      (
+        &self.node_layers[layer_index - 1],
+        &self.inverted_edges[layer_index - 1],
+        None,
+        None,
+      )
+    } else {
+      (
+        &self.node_layers[layer_index - 1],
+        &self.inverted_edges[layer_index - 1],
+        Some(&self.node_layers[layer_index + 1]),
+        Some(&self.edges[layer_index]),
+      )
+    }
+  }
+
+  pub fn get_nodes(&self) -> Vec<Vec<T>> {
+    self.node_layers.clone()
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_get_adjacent_layers() {
+    let optimizer = Optimizer::new(
+      vec![
+        vec![1,2,3],
+        vec![4,5,6],
+        vec![7,8,9],
+      ],
+      vec![
+        vec![(1,4,2), (1,5,1)],
+        vec![(4,8,3), (6,7,4)],
+      ]
+    );
+
+    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(0);
+    assert_eq!(nodes1, vec![4,5,6]);
+    assert_eq!(nodes2, None);
+    assert_eq!(edges1, vec![(1,4,2), (1,5,1)]);
+    assert_eq!(edges2, None);
+
+    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(1);
+    assert_eq!(nodes1, vec![1,2,3]);
+    assert_eq!(nodes2, Some(&vec![7,8,9]));
+    assert_eq!(edges1, vec![(4,1,2), (5,1,1)]);
+    assert_eq!(edges2, Some(&vec![(4,8,3), (6,7,4)]));
+
+    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(2);
+    assert_eq!(nodes1, vec![4,5,6]);
+    assert_eq!(nodes2, None);
+    assert_eq!(edges1, vec![(8,4,3), (7,6,4)]);
+    assert_eq!(edges2, None);
+
+  }
+}
