@@ -3,6 +3,8 @@ use std::hash::Hash;
 
 use itertools::Itertools;
 
+use crate::error::OptimizerError;
+
 pub fn reorder_node_groups<T>(nodes: &[T], group_sizes: &[usize], new_indices: &[usize]) -> Vec<T>
 where
   T: Eq + Hash + Clone + Display + Debug,
@@ -128,46 +130,42 @@ pub fn groups_and_borders(
   }
 }
 
-pub fn validate_hierarchy(layer_index: usize, node_count: usize, hierarchy: &Vec<Vec<usize>>) {
+pub fn validate_hierarchy(layer_index: usize, node_count: usize, hierarchy: &Vec<Vec<usize>>) -> Result<(),OptimizerError> {
   if hierarchy.len() == 0 {
-    return;
+    return Ok(());
   }
 
-  for level_index in 0..hierarchy.len() {
-    let size: usize = hierarchy[level_index].iter().sum();
+  for granularity in 0..hierarchy.len() {
+    let size: usize = hierarchy[granularity].iter().sum();
 
     if size != node_count {
-      panic!(
-        "Hierarchy at layer {}, level {} has total size {} != node count {}",
-        layer_index, level_index, size, node_count
-      );
+      return Err(OptimizerError::HierarchySizeMismatch { layer_index, granularity, size, node_count });
     }
 
-    if level_index == 0 {
+    if granularity == 0 {
       continue;
     }
 
     let mut self_size: usize = 0;
     let mut next_size: usize = 0;
     let mut next_index: usize = 0;
-    for group_size in &hierarchy[level_index] {
+    for group_size in &hierarchy[granularity] {
       self_size += group_size;
       loop {
-        next_size += hierarchy[level_index - 1][next_index];
+        next_size += hierarchy[granularity - 1][next_index];
         next_index += 1;
         if next_size == self_size {
           break;
         }
 
         if next_size > self_size {
-          panic!(
-            "Hierarchy at layer {}, level {} does not align with its child level, {} > {}",
-            layer_index, level_index, next_index, self_size
-          );
+          return Err(OptimizerError::HierarchyAlignmentError { layer_index, granularity, next_size, self_size });
         }
       }
     }
   }
+
+  Ok(())
 }
 
 #[cfg(test)]
@@ -216,7 +214,7 @@ mod tests {
       vec![50, 50],
     ];
 
-    validate_hierarchy(0, 100, &group_layers);
+    assert!(validate_hierarchy(0, 100, &group_layers).is_ok());
 
     let new_order: Vec<usize> = vec![1, 0];
     let new_group_layers = reorder_hierarchy(&group_layers, 2, &new_order);

@@ -4,6 +4,7 @@ use std::hash::Hash;
 use itertools::Itertools;
 
 use crate::count_crossings::{_count_crossings, count_crossings};
+use crate::error::OptimizerError;
 use crate::mapping::{map_edges, swap_edges};
 
 pub struct Optimizer<T>
@@ -29,8 +30,8 @@ where
     }
   }
 
-  pub fn count_layer_crossings(&self, layer_index: usize) -> i64 {
-    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
+  pub fn count_layer_crossings(&self, layer_index: usize) -> Result<i64,OptimizerError> {
+    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
     let mapped_edges1 = map_edges(&self.node_layers[layer_index], nodes1, edges1);
     let mut crossing_count = _count_crossings(nodes1.len(), &mapped_edges1) as i64;
 
@@ -39,7 +40,7 @@ where
       crossing_count += _count_crossings(nodes2.len(), &mapped_edges2) as i64;
     };
 
-    crossing_count
+    Ok(crossing_count)
   }
 
   pub fn count_crossings(&self) -> usize {
@@ -56,16 +57,12 @@ where
   pub fn get_adjacent_layers(
     &self,
     layer_index: usize,
-  ) -> (&[T], &[(T, T, usize)], Option<&Vec<T>>, Option<&Vec<(T, T, usize)>>) {
+  ) -> Result<(&[T], &[(T, T, usize)], Option<&Vec<T>>, Option<&Vec<(T, T, usize)>>), OptimizerError> {
     if layer_index >= self.node_layers.len() {
-      panic!(
-        "Layer index out of range: {} > {}",
-        layer_index,
-        self.node_layers.len() - 1
-      );
+      return Err(OptimizerError::InvalidLayer { layer_index, layer_count: self.node_layers.len() })
     }
 
-    if layer_index == 0 {
+    Ok(if layer_index == 0 {
       (&self.node_layers[layer_index + 1], &self.edges[layer_index], None, None)
     } else if layer_index == self.node_layers.len() - 1 {
       (
@@ -81,7 +78,7 @@ where
         Some(&self.node_layers[layer_index + 1]),
         Some(&self.edges[layer_index]),
       )
-    }
+    })
   }
 
   pub fn get_nodes(&self) -> Vec<Vec<T>> {
@@ -100,19 +97,19 @@ mod tests {
       vec![vec![(1, 4, 2), (1, 5, 1)], vec![(4, 8, 3), (6, 7, 4)]],
     );
 
-    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(0);
+    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(0).unwrap();
     assert_eq!(nodes1, vec![4, 5, 6]);
     assert_eq!(nodes2, None);
     assert_eq!(edges1, vec![(1, 4, 2), (1, 5, 1)]);
     assert_eq!(edges2, None);
 
-    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(1);
+    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(1).unwrap();
     assert_eq!(nodes1, vec![1, 2, 3]);
     assert_eq!(nodes2, Some(&vec![7, 8, 9]));
     assert_eq!(edges1, vec![(4, 1, 2), (5, 1, 1)]);
     assert_eq!(edges2, Some(&vec![(4, 8, 3), (6, 7, 4)]));
 
-    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(2);
+    let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(2).unwrap();
     assert_eq!(nodes1, vec![4, 5, 6]);
     assert_eq!(nodes2, None);
     assert_eq!(edges1, vec![(8, 4, 3), (7, 6, 4)]);

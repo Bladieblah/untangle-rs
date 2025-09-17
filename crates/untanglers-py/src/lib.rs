@@ -5,7 +5,7 @@ use untanglers_core as core;
 use untanglers_core::optimizer_ops::OptimizerOps;
 
 fn to_pyerr(err: OptimizerError) -> PyErr {
-    PyValueError::new_err(err.to_string())
+  PyValueError::new_err(err.to_string())
 }
 
 #[pyclass]
@@ -21,14 +21,14 @@ impl LayoutOptimizer {
     Ok(Self { inner })
   }
 
-  pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) {
-    self.inner.swap_nodes(layer_index, max_iterations, temperature);
+  pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) -> PyResult<i64> {
+    self.inner.swap_nodes(layer_index, max_iterations, temperature).map_err(to_pyerr)
   }
 
-  pub fn cooldown(&mut self, start_temp: f64, end_temp: f64, steps: usize, max_iterations: usize, layer_index: usize) {
+  pub fn cooldown(&mut self, start_temp: f64, end_temp: f64, steps: usize, max_iterations: usize, layer_index: usize) -> PyResult<i64> {
     self
       .inner
-      .cooldown(start_temp, end_temp, steps, max_iterations, layer_index);
+      .cooldown(start_temp, end_temp, steps, max_iterations, layer_index).map_err(to_pyerr)
   }
 
   pub fn get_nodes(&self) -> Vec<Vec<String>> {

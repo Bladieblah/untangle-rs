@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
 use crate::error::OptimizerError;
-use crate::hierarchy::{groups_and_borders, reorder_hierarchy, reorder_node_groups};
+use crate::hierarchy::{groups_and_borders, reorder_hierarchy, reorder_node_groups, validate_hierarchy};
 use crate::mapping::reorder_nodes;
 use crate::optimizer::Optimizer;
 use crate::optimizer_ops::{impl_optimizer_ops, OptimizerInternalOps, OptimizerOps};
@@ -30,6 +30,10 @@ where
       return Err(OptimizerError::HierarchyMismatch { hierarchy: hierarchy.len(), layers: node_layers.len() });
     }
 
+    for layer_index in 0..hierarchy.len() {
+      validate_hierarchy(layer_index, node_layers[layer_index].len(), &hierarchy[layer_index])?;
+    }
+
     validate_layers(&node_layers, &edges)?;
 
     let optimizer = Optimizer::new(node_layers, edges);
@@ -42,8 +46,8 @@ where
     granularity: Option<usize>,
     max_iterations: usize,
     temperature: f64,
-  ) -> i64 {
-    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
+  ) -> Result<i64, OptimizerError> {
+    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
     let (groups, borders) = groups_and_borders(&self.hierarchy[layer_index], granularity);
 
     let (new_indices, new_count) = reduce_crossings(
@@ -68,7 +72,7 @@ where
       }
     }
 
-    new_count
+    Ok(new_count)
   }
 
   pub fn cooldown(
@@ -79,8 +83,8 @@ where
     max_iterations: usize,
     layer_index: usize,
     granularity: Option<usize>,
-  ) -> i64 {
-    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
+  ) -> Result<i64, OptimizerError> {
+    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
     let (groups, borders) = groups_and_borders(&self.hierarchy[layer_index], granularity);
 
     let (new_indices, new_count) = reduce_crossings(
@@ -105,7 +109,7 @@ where
       }
     }
 
-    new_count
+    Ok(new_count)
   }
 
   pub fn optimize(
@@ -115,7 +119,7 @@ where
     steps: usize,
     max_iterations: usize,
     passes: usize,
-  ) -> i64 {
+  ) -> Result<i64, OptimizerError> {
     let mut crossing_count = 0;
     for _pass in 0..passes {
       for layer_index in 0..self.optimizer.node_layers.len() {
@@ -127,13 +131,13 @@ where
             max_iterations,
             layer_index,
             Some(granularity),
-          );
+          )?;
         }
-        crossing_count = self.cooldown(start_temp, end_temp, steps, max_iterations, layer_index, None);
+        crossing_count = self.cooldown(start_temp, end_temp, steps, max_iterations, layer_index, None)?;
       }
     }
 
-    crossing_count
+    Ok(crossing_count)
   }
 
   pub fn get_hierarchy(&self) -> Hierarchy {
@@ -191,6 +195,25 @@ use super::*;
       Err(other) => panic!("Unexpected error: {}", other),
       Ok(_) => panic!("Expected an error"),
     }
+
+    let optimizer = HierarchyOptimizer::new(
+      vec![vec![0,1,2,3,4,5,6,7,8,9]],
+      vec![],
+      vec![vec![
+        vec![2,2,2,2,2],
+        vec![5,5],
+      ]]
+    );
+    match optimizer {
+      Err(OptimizerError::HierarchyAlignmentError { layer_index, granularity, next_size, self_size }) => {
+        assert_eq!(layer_index, 0);
+        assert_eq!(granularity, 1);
+        assert_eq!(next_size, 6);
+        assert_eq!(self_size, 5);
+      }
+      Err(other) => panic!("Unexpected error: {}", other),
+      Ok(_) => panic!("Expected an error"),
+    }
   }
 
   fn get_clusters(hierarchy: &Hierarchy, layer_index: usize, nodes: &[Vec<i32>]) -> HashMap<usize, HashSet<i32>> {
@@ -229,7 +252,7 @@ use super::*;
       Some(1_usize),
       Some(2_usize),
     ] {
-      let end_crossings = timeit("Optimize", || optimizer.cooldown(1., 0.1, 5, 200, 1, granularity));
+      let end_crossings = timeit("Optimize", || optimizer.cooldown(1., 0.1, 5, 200, 1, granularity)).unwrap();
 
       assert_eq!(get_clusters(&optimizer.get_hierarchy(), 1, &optimizer.get_nodes()), clusters);
   
@@ -237,7 +260,7 @@ use super::*;
       println!("Improved from {} to {}", start_crossings, end_crossings);
       assert!(end_crossings > 0);
   
-      let real_crossings = optimizer.count_layer_crossings(1);
+      let real_crossings = optimizer.count_layer_crossings(1).unwrap();
       assert_eq!(end_crossings, real_crossings);
       start_crossings = end_crossings;
     }
@@ -258,7 +281,7 @@ use super::*;
     let mut optimizer = HierarchyOptimizer::new(nodes, edges, hierarchy).unwrap();
     let start_crossings = optimizer.count_crossings() as i64;
     
-    let end_crossings = timeit("Optimize", || optimizer.optimize(1., 0.1, 5, 200, 20));
+    let end_crossings = timeit("Optimize", || optimizer.optimize(1., 0.1, 5, 200, 20)).unwrap();
 
       assert_eq!(get_clusters(&optimizer.get_hierarchy(), 1, &optimizer.get_nodes()), clusters);
 

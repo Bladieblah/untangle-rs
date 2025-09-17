@@ -28,8 +28,8 @@ where
     Ok(Self { optimizer })
   }
 
-  pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) -> i64 {
-    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
+  pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) -> Result<i64, OptimizerError> {
+    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
 
     let (new_indices, new_count) = reduce_crossings(
       &self.optimizer.node_layers[layer_index],
@@ -47,7 +47,7 @@ where
 
     self.optimizer.node_layers[layer_index] = reorder_nodes(&self.optimizer.node_layers[layer_index], &new_indices);
 
-    new_count
+    Ok(new_count)
   }
 
   pub fn cooldown(
@@ -57,8 +57,8 @@ where
     steps: usize,
     max_iterations: usize,
     layer_index: usize,
-  ) -> i64 {
-    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index);
+  ) -> Result<i64, OptimizerError> {
+    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
 
     let (new_indices, new_count) = reduce_crossings(
       &self.optimizer.node_layers[layer_index],
@@ -76,7 +76,7 @@ where
 
     self.optimizer.node_layers[layer_index] = reorder_nodes(&self.optimizer.node_layers[layer_index], &new_indices);
 
-    new_count
+    Ok(new_count)
   }
 
   pub fn optimize(
@@ -86,15 +86,15 @@ where
     steps: usize,
     max_iterations: usize,
     passes: usize,
-  ) -> i64 {
+  ) -> Result<i64, OptimizerError> {
     let mut crossing_count = 0;
     for _pass in 0..passes {
       for i in 0..self.optimizer.node_layers.len() {
-        crossing_count = self.cooldown(start_temp, end_temp, steps, max_iterations, i);
+        crossing_count = self.cooldown(start_temp, end_temp, steps, max_iterations, i)?;
       }
     }
 
-    crossing_count
+    Ok(crossing_count)
   }
 }
 
@@ -110,13 +110,13 @@ mod tests {
     let (nodes, edges) = generate_multipartite_graph(7, n);
     let mut optimizer = LayoutOptimizer::new(nodes, edges).unwrap();
     let start_crossings = optimizer.count_crossings() as i64;
-    let end_crossings = timeit("Optimize", || optimizer.cooldown(1., 0.1, 5, 200, 1));
+    let end_crossings = timeit("Optimize", || optimizer.cooldown(1., 0.1, 5, 200, 1)).unwrap();
 
     println!("Improved from {} to {}", start_crossings, end_crossings);
     assert!(start_crossings > end_crossings);
     assert!(end_crossings > 0);
 
-    let real_crossings = optimizer.count_layer_crossings(1);
+    let real_crossings = optimizer.count_layer_crossings(1).unwrap();
     assert_eq!(end_crossings, real_crossings);
   }
 
@@ -127,7 +127,7 @@ mod tests {
     let (nodes, edges) = generate_multipartite_graph(7, n);
     let mut optimizer = LayoutOptimizer::new(nodes, edges).unwrap();
     let start_crossings = optimizer.count_crossings() as i64;
-    let end_crossings = timeit("Optimize", || optimizer.optimize(1., 0.1, 5, 200, 20));
+    let end_crossings = timeit("Optimize", || optimizer.optimize(1., 0.1, 5, 200, 20)).unwrap();
 
     println!("Improved from {} to {}", start_crossings, end_crossings);
     assert!(start_crossings > end_crossings);

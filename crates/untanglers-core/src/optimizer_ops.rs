@@ -5,7 +5,7 @@ pub trait OptimizerOps<T>
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
-  fn count_layer_crossings(&self, layer_index: usize) -> i64;
+  fn count_layer_crossings(&self, layer_index: usize) -> Result<i64,OptimizerError>;
   fn count_crossings(&self) -> usize;
   fn get_nodes(&self) -> Vec<Vec<T>>;
 }
@@ -17,7 +17,7 @@ where
   fn get_adjacent_layers(
     &self,
     layer_index: usize,
-  ) -> (&[T], &[(T, T, usize)], Option<&Vec<T>>, Option<&Vec<(T, T, usize)>>);
+  ) -> Result<(&[T], &[(T, T, usize)], Option<&Vec<T>>, Option<&Vec<(T, T, usize)>>), OptimizerError>;
 }
 
 macro_rules! impl_optimizer_ops {
@@ -26,7 +26,7 @@ macro_rules! impl_optimizer_ops {
     where
       T: Eq + Hash + Clone + Display + Debug,
     {
-      fn count_layer_crossings(&self, layer_index: usize) -> i64 {
+      fn count_layer_crossings(&self, layer_index: usize) -> Result<i64,OptimizerError> {
         self.optimizer.count_layer_crossings(layer_index)
       }
       fn count_crossings(&self) -> usize {
@@ -44,7 +44,7 @@ macro_rules! impl_optimizer_ops {
       fn get_adjacent_layers(
         &self,
         layer_index: usize,
-      ) -> (&[T], &[(T, T, usize)], Option<&Vec<T>>, Option<&Vec<(T, T, usize)>>) {
+      ) -> Result<(&[T], &[(T, T, usize)], Option<&Vec<T>>, Option<&Vec<(T, T, usize)>>), OptimizerError> {
         self.optimizer.get_adjacent_layers(layer_index)
       }
     }
@@ -52,3 +52,5 @@ macro_rules! impl_optimizer_ops {
 }
 
 pub(crate) use impl_optimizer_ops;
+
+use crate::error::OptimizerError;
