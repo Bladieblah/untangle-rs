@@ -37,7 +37,10 @@ pub fn swap_nodes(
         }
 
         if crossing_count < 0 {
-          println!("[ERROR] Swapped nodes {} <-> {} with contrib {} new count = {}", node_a, node_b, contribution, crossing_count);
+          println!(
+            "[ERROR] Swapped nodes {} <-> {} with contrib {} new count = {}",
+            node_a, node_b, contribution, crossing_count
+          );
           panic!("Crossing count turned negative: {}", crossing_count);
         }
       }
@@ -56,7 +59,7 @@ fn matrix_and_count<T>(
   static_nodes1: &[T],
   edges1: &[(T, T, usize)],
   static_nodes2: Option<&Vec<T>>,
-  edges2: Option<&Vec<(T, T, usize)>>
+  edges2: Option<&Vec<(T, T, usize)>>,
 ) -> (i64, Vec<f64>)
 where
   T: Eq + Hash + Clone + Display + Debug,
@@ -87,17 +90,18 @@ pub fn reduce_crossings<T>(
   start_temp: f64,
   end_temp: f64,
   temp_steps: usize,
-  groups: Option<&[usize]>,
+  groups: Option<Vec<usize>>,
   borders: Option<Vec<usize>>,
 ) -> (Vec<usize>, i64)
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
-  let (mut crossing_count, mut pairwise_matrix) = matrix_and_count(swappable_nodes, static_nodes1, edges1, static_nodes2, edges2);
+  let (mut crossing_count, mut pairwise_matrix) =
+    matrix_and_count(swappable_nodes, static_nodes1, edges1, static_nodes2, edges2);
 
   let swappable_count = match groups {
     Some(groups) => {
-      pairwise_matrix = aggregate_pairwise_matrix(&pairwise_matrix, groups);
+      pairwise_matrix = aggregate_pairwise_matrix(&pairwise_matrix, &groups);
       groups.len()
     }
     None => swappable_nodes.len(),
@@ -139,42 +143,33 @@ mod tests {
   #[test]
   fn test_middle_layer() {
     let (crossing_count, pairwise_matrix) = matrix_and_count(
-      &vec![4,5,6],
-      &vec![1,2,3],
-      &vec![(4,1,2), (5,1,1), (4,2,1), (6,3,10)],
-      Some(&vec![7,8,9]),
-      Some(&vec![(4,8,3), (5,7,2), (6,9,5)]),
+      &vec![4, 5, 6],
+      &vec![1, 2, 3],
+      &vec![(4, 1, 2), (5, 1, 1), (4, 2, 1), (6, 3, 10)],
+      Some(&vec![7, 8, 9]),
+      Some(&vec![(4, 8, 3), (5, 7, 2), (6, 9, 5)]),
     );
 
     assert_eq!(crossing_count, 7);
 
-    let expected_matrix = vec![
-      0., 7., -45.,
-      -7., 0., -20.,
-      45., 20., 0.
-    ];
+    let expected_matrix = vec![0., 7., -45., -7., 0., -20., 45., 20., 0.];
     assert_eq!(pairwise_matrix, expected_matrix);
 
-    let (new_nodes, new_count) = swap_nodes(3, &pairwise_matrix, 1, 1e-5, crossing_count, vec![0,1,2], &None);
+    let (new_nodes, new_count) = swap_nodes(3, &pairwise_matrix, 1, 1e-5, crossing_count, vec![0, 1, 2], &None);
     assert_eq!(new_count, 0);
-    assert_eq!(new_nodes, vec![1,0,2]);
-
+    assert_eq!(new_nodes, vec![1, 0, 2]);
 
     let (crossing_count, pairwise_matrix) = matrix_and_count(
-      &vec![5,4,6],
-      &vec![1,2,3],
-      &vec![(4,1,2), (5,1,1), (4,2,1), (6,3,10)],
-      Some(&vec![7,8,9]),
-      Some(&vec![(4,8,3), (5,7,2), (6,9,5)]),
+      &vec![5, 4, 6],
+      &vec![1, 2, 3],
+      &vec![(4, 1, 2), (5, 1, 1), (4, 2, 1), (6, 3, 10)],
+      Some(&vec![7, 8, 9]),
+      Some(&vec![(4, 8, 3), (5, 7, 2), (6, 9, 5)]),
     );
 
     assert_eq!(crossing_count, 0);
 
-    let expected_matrix = vec![
-      0., -7., -20.,
-      7., 0., -45.,
-      20., 45., 0.
-    ];
+    let expected_matrix = vec![0., -7., -20., 7., 0., -45., 20., 45., 0.];
     assert_eq!(pairwise_matrix, expected_matrix);
   }
 

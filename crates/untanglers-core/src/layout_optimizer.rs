@@ -3,14 +3,14 @@ use std::hash::Hash;
 
 use crate::mapping::reorder_nodes;
 use crate::optimizer::Optimizer;
-use crate::optimizer_ops::{impl_optimizer_ops, OptimizerOps, OptimizerInternalOps};
+use crate::optimizer_ops::{impl_optimizer_ops, OptimizerInternalOps, OptimizerOps};
 use crate::reducer::reduce_crossings;
 
 pub struct LayoutOptimizer<T>
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
-  optimizer: Optimizer<T>
+  optimizer: Optimizer<T>,
 }
 
 impl_optimizer_ops!(LayoutOptimizer<T>);
@@ -21,9 +21,7 @@ where
 {
   pub fn new(node_layers: Vec<Vec<T>>, edges: Vec<Vec<(T, T, usize)>>) -> Self {
     let optimizer = Optimizer::new(node_layers, edges);
-    Self {
-      optimizer
-    }
+    Self { optimizer }
   }
 
   pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) -> i64 {
@@ -77,7 +75,14 @@ where
     new_count
   }
 
-  pub fn optimize(&mut self, start_temp: f64, end_temp: f64, steps: usize, max_iterations: usize, passes: usize) -> i64 {
+  pub fn optimize(
+    &mut self,
+    start_temp: f64,
+    end_temp: f64,
+    steps: usize,
+    max_iterations: usize,
+    passes: usize,
+  ) -> i64 {
     let mut crossing_count = 0;
     for _pass in 0..passes {
       for i in 0..self.optimizer.node_layers.len() {

@@ -37,35 +37,32 @@ pub fn reorder_group(parent_groups: &[usize], groups: &[usize], new_order: &[usi
 }
 
 pub fn reorder_hierarchy(
-  group_sizes_layers: &[Vec<usize>],
-  layer_index: usize,
+  hierarchy: &[Vec<usize>],
+  granularity: usize,
   new_order: &[usize],
 ) -> Vec<Vec<usize>> {
   // group_sizes_layers should be in order fine -> coarse
-  let layer_count = group_sizes_layers.len();
-  let mut new_group_sizes = Vec::<Vec<usize>>::with_capacity(layer_count);
+  let layer_count = hierarchy.len();
+  let mut new_hierarchy = Vec::<Vec<usize>>::with_capacity(layer_count);
 
   for l in 0..layer_count {
-    if l > layer_index {
-      new_group_sizes.push(group_sizes_layers[l].clone());
-    } else if l == layer_index {
-      new_group_sizes.push(new_order.iter().map(|i| group_sizes_layers[l][*i]).collect_vec());
+    if l > granularity {
+      new_hierarchy.push(hierarchy[l].clone());
+    } else if l == granularity {
+      new_hierarchy.push(new_order.iter().map(|i| hierarchy[l][*i]).collect_vec());
     } else {
-      new_group_sizes.push(reorder_group(
-        &group_sizes_layers[layer_index],
-        &group_sizes_layers[l],
+      new_hierarchy.push(reorder_group(
+        &hierarchy[granularity],
+        &hierarchy[l],
         new_order,
       ));
     }
   }
 
-  new_group_sizes
+  new_hierarchy
 }
 
-pub fn get_borders(
-  child_groups: &[usize],
-  parent_groups: &[usize]
-) -> Vec<usize> {
+pub fn get_borders(child_groups: &[usize], parent_groups: &[usize]) -> Vec<usize> {
   let mut borders = Vec::<usize>::with_capacity(parent_groups.len());
 
   let mut parent_size: usize = 0;
@@ -78,7 +75,7 @@ pub fn get_borders(
       child_index += 1;
       if child_size == parent_size {
         borders.push(child_index - 1);
-        break
+        break;
       }
 
       if child_size > parent_size {
@@ -90,23 +87,65 @@ pub fn get_borders(
   borders
 }
 
-pub fn validate_hierarchy(
-  layer_index: usize,
-  node_count: usize,
-  hierarchy: &Vec<Vec<usize>>,
-) {
+/// Determines the appropriate groups and borders for swapping nodes at a given granularity.
+/// 
+/// Groups are sets of nodes that can be swapped as a whole, borders are boundaries across which nodes cannot be swapped.
+/// In a hierarchy, each coarser level acts as borders for the level below it.
+/// 
+/// * `hierarchy` The group sizes for the nodes
+/// * `granularity` If None, nodes aren't grouped, only borders will be given
+pub fn groups_and_borders(
+  hierarchy: &[Vec<usize>],
+  granularity: Option<usize>,
+) -> (Option<Vec<usize>>, Option<Vec<usize>>) {
+  match granularity {
+    None => (
+      None,
+      if hierarchy.len() == 0 {
+        None
+      } else {
+        Some(
+          hierarchy[0]
+            .iter()
+            .scan(0, |state, &x| {
+              *state += x;
+              Some(*state - 1)
+            })
+            .collect_vec(),
+        )
+      },
+    ),
+    Some(granularity) => {
+      (
+        Some(hierarchy[granularity].clone()),
+        if granularity + 1 < hierarchy.len() {
+          Some(get_borders(&hierarchy[granularity], &hierarchy[granularity + 1]))
+        } else {
+          None
+        }
+      )
+    }
+  }
+}
+
+pub fn validate_hierarchy(layer_index: usize, node_count: usize, hierarchy: &Vec<Vec<usize>>) {
   if hierarchy.len() == 0 {
-    return
+    return;
   }
 
   for level_index in 0..hierarchy.len() {
     let size: usize = hierarchy[level_index].iter().sum();
 
     if size != node_count {
-      panic!("Hierarchy at layer {}, level {} has total size {} != node count {}", layer_index, level_index, size, node_count);
+      panic!(
+        "Hierarchy at layer {}, level {} has total size {} != node count {}",
+        layer_index, level_index, size, node_count
+      );
     }
 
-    if level_index == 0 { continue }
+    if level_index == 0 {
+      continue;
+    }
 
     let mut self_size: usize = 0;
     let mut next_size: usize = 0;
@@ -117,11 +156,14 @@ pub fn validate_hierarchy(
         next_size += hierarchy[level_index - 1][next_index];
         next_index += 1;
         if next_size == self_size {
-          break
+          break;
         }
 
         if next_size > self_size {
-          panic!("Hierarchy at layer {}, level {} does not align with its child level, {} > {}", layer_index, level_index, next_index, self_size);
+          panic!(
+            "Hierarchy at layer {}, level {} does not align with its child level, {} > {}",
+            layer_index, level_index, next_index, self_size
+          );
         }
       }
     }
@@ -197,5 +239,34 @@ mod tests {
         vec![50, 50],
       ]
     );
+  }
+
+  #[test]
+  fn test_groups_and_borders() {
+    let hierarchy: Vec<Vec<usize>> = vec![
+      vec![10, 13, 7, 3, 3, 14, 20, 15, 15],
+      vec![30, 20, 35, 15],
+      vec![50, 50],
+    ];
+
+    let (groups, borders) = groups_and_borders(&vec![], None);
+    assert_eq!(groups, None);
+    assert_eq!(borders, None);
+
+    let (groups, borders) = groups_and_borders(&hierarchy, None);
+    assert_eq!(groups, None);
+    assert_eq!(borders, Some(vec![9, 22, 29, 32, 35, 49, 69, 84, 99]));
+
+    let (groups, borders) = groups_and_borders(&hierarchy, Some(0));
+    assert_eq!(groups, Some(hierarchy[0].clone()));
+    assert_eq!(borders, Some(vec![2, 5, 7, 8]));
+
+    let (groups, borders) = groups_and_borders(&hierarchy, Some(1));
+    assert_eq!(groups, Some(hierarchy[1].clone()));
+    assert_eq!(borders, Some(vec![1, 3]));
+
+    let (groups, borders) = groups_and_borders(&hierarchy, Some(2));
+    assert_eq!(groups, Some(hierarchy[2].clone()));
+    assert_eq!(borders, None);
   }
 }

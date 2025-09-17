@@ -15,8 +15,6 @@ where
   pub inverted_edges: Vec<Vec<(T, T, usize)>>,
 }
 
-
-
 impl<T> Optimizer<T>
 where
   T: Eq + Hash + Clone + Display + Debug,
@@ -98,34 +96,26 @@ mod tests {
   #[test]
   fn test_get_adjacent_layers() {
     let optimizer = Optimizer::new(
-      vec![
-        vec![1,2,3],
-        vec![4,5,6],
-        vec![7,8,9],
-      ],
-      vec![
-        vec![(1,4,2), (1,5,1)],
-        vec![(4,8,3), (6,7,4)],
-      ]
+      vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]],
+      vec![vec![(1, 4, 2), (1, 5, 1)], vec![(4, 8, 3), (6, 7, 4)]],
     );
 
     let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(0);
-    assert_eq!(nodes1, vec![4,5,6]);
+    assert_eq!(nodes1, vec![4, 5, 6]);
     assert_eq!(nodes2, None);
-    assert_eq!(edges1, vec![(1,4,2), (1,5,1)]);
+    assert_eq!(edges1, vec![(1, 4, 2), (1, 5, 1)]);
     assert_eq!(edges2, None);
 
     let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(1);
-    assert_eq!(nodes1, vec![1,2,3]);
-    assert_eq!(nodes2, Some(&vec![7,8,9]));
-    assert_eq!(edges1, vec![(4,1,2), (5,1,1)]);
-    assert_eq!(edges2, Some(&vec![(4,8,3), (6,7,4)]));
+    assert_eq!(nodes1, vec![1, 2, 3]);
+    assert_eq!(nodes2, Some(&vec![7, 8, 9]));
+    assert_eq!(edges1, vec![(4, 1, 2), (5, 1, 1)]);
+    assert_eq!(edges2, Some(&vec![(4, 8, 3), (6, 7, 4)]));
 
     let (nodes1, edges1, nodes2, edges2) = optimizer.get_adjacent_layers(2);
-    assert_eq!(nodes1, vec![4,5,6]);
+    assert_eq!(nodes1, vec![4, 5, 6]);
     assert_eq!(nodes2, None);
-    assert_eq!(edges1, vec![(8,4,3), (7,6,4)]);
+    assert_eq!(edges1, vec![(8, 4, 3), (7, 6, 4)]);
     assert_eq!(edges2, None);
-
   }
 }
