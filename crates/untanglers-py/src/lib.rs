@@ -111,7 +111,10 @@ impl HierarchyOptimizer {
     max_iterations: usize,
     passes: usize,
   ) -> PyResult<i64> {
-    self.inner.optimize(start_temp, end_temp, steps, max_iterations, passes).map_err(to_pyerr)
+    self
+      .inner
+      .optimize(start_temp, end_temp, steps, max_iterations, passes)
+      .map_err(to_pyerr)
   }
 
   pub fn get_nodes(&self) -> Vec<Vec<String>> {

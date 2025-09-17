@@ -259,7 +259,7 @@ mod tests {
     let mut optimizer = HierarchyOptimizer::new(nodes, edges, hierarchy).unwrap();
     let mut start_crossings = optimizer.count_crossings() as i64;
 
-    for granularity in vec![None, Some(0_usize), Some(1_usize), Some(2_usize)] {
+    for granularity in [None, Some(0_usize), Some(1_usize), Some(2_usize)] {
       let end_crossings = timeit("Optimize", || optimizer.cooldown(1., 0.1, 5, 200, 1, granularity)).unwrap();
 
       assert_eq!(

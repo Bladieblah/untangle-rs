@@ -143,9 +143,9 @@ mod tests {
   #[test]
   fn test_middle_layer() {
     let (crossing_count, pairwise_matrix) = matrix_and_count(
-      &vec![4, 5, 6],
-      &vec![1, 2, 3],
-      &vec![(4, 1, 2), (5, 1, 1), (4, 2, 1), (6, 3, 10)],
+      &[4, 5, 6],
+      &[1, 2, 3],
+      &[(4, 1, 2), (5, 1, 1), (4, 2, 1), (6, 3, 10)],
       Some(&vec![7, 8, 9]),
       Some(&vec![(4, 8, 3), (5, 7, 2), (6, 9, 5)]),
     );
@@ -160,9 +160,9 @@ mod tests {
     assert_eq!(new_nodes, vec![1, 0, 2]);
 
     let (crossing_count, pairwise_matrix) = matrix_and_count(
-      &vec![5, 4, 6],
-      &vec![1, 2, 3],
-      &vec![(4, 1, 2), (5, 1, 1), (4, 2, 1), (6, 3, 10)],
+      &[5, 4, 6],
+      &[1, 2, 3],
+      &[(4, 1, 2), (5, 1, 1), (4, 2, 1), (6, 3, 10)],
       Some(&vec![7, 8, 9]),
       Some(&vec![(4, 8, 3), (5, 7, 2), (6, 9, 5)]),
     );

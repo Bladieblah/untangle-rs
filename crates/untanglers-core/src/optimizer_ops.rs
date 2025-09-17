@@ -14,6 +14,7 @@ pub trait OptimizerInternalOps<T>
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
+  #[allow(clippy::type_complexity)]
   fn get_adjacent_layers(
     &self,
     layer_index: usize,

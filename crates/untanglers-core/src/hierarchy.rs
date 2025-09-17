@@ -123,7 +123,7 @@ pub fn groups_and_borders(
 pub fn validate_hierarchy(
   layer_index: usize,
   node_count: usize,
-  hierarchy: &Vec<Vec<usize>>,
+  hierarchy: &[Vec<usize>],
 ) -> Result<(), OptimizerError> {
   if hierarchy.is_empty() {
     return Ok(());
@@ -251,7 +251,7 @@ mod tests {
       vec![50, 50],
     ];
 
-    let (groups, borders) = groups_and_borders(&vec![], None);
+    let (groups, borders) = groups_and_borders(&[], None);
     assert_eq!(groups, None);
     assert_eq!(borders, None);
 
