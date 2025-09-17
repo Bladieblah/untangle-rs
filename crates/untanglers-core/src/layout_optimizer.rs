@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use crate::mapping::reorder_nodes;
 use crate::optimizer::Optimizer;
-use crate::optimizer_ops::{impl_optimizer_ops, OptimizerOps};
+use crate::optimizer_ops::{impl_optimizer_ops, OptimizerOps, OptimizerInternalOps};
 use crate::reducer::reduce_crossings_final;
 
 pub struct LayoutOptimizer<T>
@@ -86,10 +86,6 @@ where
     }
 
     crossing_count
-  }
-
-  pub fn get_nodes(&self) -> Vec<Vec<T>> {
-    self.optimizer.node_layers.clone()
   }
 }
 

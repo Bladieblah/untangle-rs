@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use untanglers_core as core;
+use untanglers_core::optimizer_ops::OptimizerOps;
 
 #[pyclass]
 struct LayoutOptimizer {

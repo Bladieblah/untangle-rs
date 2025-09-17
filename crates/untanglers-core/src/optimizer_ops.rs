@@ -8,7 +8,12 @@ where
   fn count_layer_crossings(&self, layer_index: usize) -> i64;
   fn count_crossings(&self) -> usize;
   fn get_nodes(&self) -> Vec<Vec<T>>;
+}
 
+pub trait OptimizerInternalOps<T>
+where
+  T: Eq + Hash + Clone + Display + Debug,
+{
   fn get_adjacent_layers(
     &self,
     layer_index: usize,
@@ -30,14 +35,19 @@ macro_rules! impl_optimizer_ops {
       fn get_nodes(&self) -> Vec<Vec<T>> {
         self.optimizer.get_nodes()
       }
+    }
 
-      fn get_adjacent_layers(
+    impl<T> OptimizerInternalOps<T> for $className
+    where
+      T: Eq + Hash + Clone + Display + Debug,
+      {
+        fn get_adjacent_layers(
         &self,
         layer_index: usize,
       ) -> (&[T], &[(T, T, usize)], Option<&Vec<T>>, Option<&Vec<(T, T, usize)>>) {
         self.optimizer.get_adjacent_layers(layer_index)
       }
-    }
+      }
   };
 }
 
