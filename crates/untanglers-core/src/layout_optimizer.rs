@@ -28,7 +28,12 @@ where
     Ok(Self { optimizer })
   }
 
-  pub fn swap_nodes(&mut self, layer_index: usize, max_iterations: usize, temperature: f64) -> Result<i64, OptimizerError> {
+  pub fn swap_nodes(
+    &mut self,
+    temperature: f64,
+    max_iterations: usize,
+    layer_index: usize,
+  ) -> Result<i64, OptimizerError> {
     let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
 
     let (new_indices, new_count) = reduce_crossings(

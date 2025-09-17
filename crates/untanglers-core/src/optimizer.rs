@@ -30,7 +30,7 @@ where
     }
   }
 
-  pub fn count_layer_crossings(&self, layer_index: usize) -> Result<i64,OptimizerError> {
+  pub fn count_layer_crossings(&self, layer_index: usize) -> Result<i64, OptimizerError> {
     let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
     let mapped_edges1 = map_edges(&self.node_layers[layer_index], nodes1, edges1);
     let mut crossing_count = _count_crossings(nodes1.len(), &mapped_edges1) as i64;
@@ -59,7 +59,10 @@ where
     layer_index: usize,
   ) -> Result<(&[T], &[(T, T, usize)], Option<&Vec<T>>, Option<&Vec<(T, T, usize)>>), OptimizerError> {
     if layer_index >= self.node_layers.len() {
-      return Err(OptimizerError::InvalidLayer { layer_index, layer_count: self.node_layers.len() })
+      return Err(OptimizerError::InvalidLayer {
+        layer_index,
+        layer_count: self.node_layers.len(),
+      });
     }
 
     Ok(if layer_index == 0 {

@@ -92,19 +92,29 @@ pub fn matmul(matrix_a: &[f64], matrix_b: &[f64], matrix_c: &mut [f64], m: usize
 }
 
 pub fn validate_layers<T>(nodes: &[Vec<T>], edges: &[Vec<(T, T, usize)>]) -> Result<(), OptimizerError>
-where T: Clone + Display + Eq,
+where
+  T: Clone + Display + Eq,
 {
   if edges.len() != nodes.len() - 1 {
-    return Err(OptimizerError::EdgeLayerMismatch { edges: edges.len(), layers: nodes.len() });
+    return Err(OptimizerError::EdgeLayerMismatch {
+      edges: edges.len(),
+      layers: nodes.len(),
+    });
   }
 
   for layer_index in 0..edges.len() {
     for (node_a, node_b, _) in &edges[layer_index] {
       if !nodes[layer_index].contains(node_a) {
-        return Err(OptimizerError::MissingNode { node_name: node_a.clone().to_string(), layer_index: layer_index })
+        return Err(OptimizerError::MissingNode {
+          node_name: node_a.clone().to_string(),
+          layer_index,
+        });
       }
       if !nodes[layer_index + 1].contains(node_b) {
-        return Err(OptimizerError::MissingNode { node_name: node_b.clone().to_string(), layer_index: layer_index + 1 })
+        return Err(OptimizerError::MissingNode {
+          node_name: node_b.clone().to_string(),
+          layer_index: layer_index + 1,
+        });
       }
     }
   }

@@ -38,11 +38,7 @@ pub fn reorder_group(parent_groups: &[usize], groups: &[usize], new_order: &[usi
   new_groups
 }
 
-pub fn reorder_hierarchy(
-  hierarchy: &[Vec<usize>],
-  granularity: usize,
-  new_order: &[usize],
-) -> Vec<Vec<usize>> {
+pub fn reorder_hierarchy(hierarchy: &[Vec<usize>], granularity: usize, new_order: &[usize]) -> Vec<Vec<usize>> {
   // group_sizes_layers should be in order fine -> coarse
   let layer_count = hierarchy.len();
   let mut new_hierarchy = Vec::<Vec<usize>>::with_capacity(layer_count);
@@ -53,11 +49,7 @@ pub fn reorder_hierarchy(
     } else if l == granularity {
       new_hierarchy.push(new_order.iter().map(|i| hierarchy[l][*i]).collect_vec());
     } else {
-      new_hierarchy.push(reorder_group(
-        &hierarchy[granularity],
-        &hierarchy[l],
-        new_order,
-      ));
+      new_hierarchy.push(reorder_group(&hierarchy[granularity], &hierarchy[l], new_order));
     }
   }
 
@@ -90,10 +82,10 @@ pub fn get_borders(child_groups: &[usize], parent_groups: &[usize]) -> Vec<usize
 }
 
 /// Determines the appropriate groups and borders for swapping nodes at a given granularity.
-/// 
+///
 /// Groups are sets of nodes that can be swapped as a whole, borders are boundaries across which nodes cannot be swapped.
 /// In a hierarchy, each coarser level acts as borders for the level below it.
-/// 
+///
 /// * `hierarchy` The group sizes for the nodes
 /// * `granularity` If None, nodes aren't grouped, only borders will be given
 pub fn groups_and_borders(
@@ -103,7 +95,7 @@ pub fn groups_and_borders(
   match granularity {
     None => (
       None,
-      if hierarchy.len() == 0 {
+      if hierarchy.is_empty() {
         None
       } else {
         Some(
@@ -117,21 +109,23 @@ pub fn groups_and_borders(
         )
       },
     ),
-    Some(granularity) => {
-      (
-        Some(hierarchy[granularity].clone()),
-        if granularity + 1 < hierarchy.len() {
-          Some(get_borders(&hierarchy[granularity], &hierarchy[granularity + 1]))
-        } else {
-          None
-        }
-      )
-    }
+    Some(granularity) => (
+      Some(hierarchy[granularity].clone()),
+      if granularity + 1 < hierarchy.len() {
+        Some(get_borders(&hierarchy[granularity], &hierarchy[granularity + 1]))
+      } else {
+        None
+      },
+    ),
   }
 }
 
-pub fn validate_hierarchy(layer_index: usize, node_count: usize, hierarchy: &Vec<Vec<usize>>) -> Result<(),OptimizerError> {
-  if hierarchy.len() == 0 {
+pub fn validate_hierarchy(
+  layer_index: usize,
+  node_count: usize,
+  hierarchy: &Vec<Vec<usize>>,
+) -> Result<(), OptimizerError> {
+  if hierarchy.is_empty() {
     return Ok(());
   }
 
@@ -139,7 +133,12 @@ pub fn validate_hierarchy(layer_index: usize, node_count: usize, hierarchy: &Vec
     let size: usize = hierarchy[granularity].iter().sum();
 
     if size != node_count {
-      return Err(OptimizerError::HierarchySizeMismatch { layer_index, granularity, size, node_count });
+      return Err(OptimizerError::HierarchySizeMismatch {
+        layer_index,
+        granularity,
+        size,
+        node_count,
+      });
     }
 
     if granularity == 0 {
@@ -159,7 +158,12 @@ pub fn validate_hierarchy(layer_index: usize, node_count: usize, hierarchy: &Vec
         }
 
         if next_size > self_size {
-          return Err(OptimizerError::HierarchyAlignmentError { layer_index, granularity, next_size, self_size });
+          return Err(OptimizerError::HierarchyAlignmentError {
+            layer_index,
+            granularity,
+            next_size,
+            self_size,
+          });
         }
       }
     }

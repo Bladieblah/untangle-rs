@@ -5,7 +5,7 @@ pub trait OptimizerOps<T>
 where
   T: Eq + Hash + Clone + Display + Debug,
 {
-  fn count_layer_crossings(&self, layer_index: usize) -> Result<i64,OptimizerError>;
+  fn count_layer_crossings(&self, layer_index: usize) -> Result<i64, OptimizerError>;
   fn count_crossings(&self) -> usize;
   fn get_nodes(&self) -> Vec<Vec<T>>;
 }
@@ -26,7 +26,7 @@ macro_rules! impl_optimizer_ops {
     where
       T: Eq + Hash + Clone + Display + Debug,
     {
-      fn count_layer_crossings(&self, layer_index: usize) -> Result<i64,OptimizerError> {
+      fn count_layer_crossings(&self, layer_index: usize) -> Result<i64, OptimizerError> {
         self.optimizer.count_layer_crossings(layer_index)
       }
       fn count_crossings(&self) -> usize {
