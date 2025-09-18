@@ -52,7 +52,7 @@ class Benchmark:
 
   @timeit
   def check_rust(self, nodes_left: list[str], nodes_right: list[str], edges: list[tuple[str, str, int]]):
-    crossings = untanglers.LayoutOptimizer([nodes_left, nodes_right], [edges])
+    crossings = untanglers.LayoutOptimizerString([nodes_left, nodes_right], [edges])
     crossings.swap_nodes(0, self.max_iterations, self.temperature)
 
 

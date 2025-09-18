@@ -254,7 +254,7 @@ mod tests {
       vec![],
     ];
 
-    let (nodes, edges) = generate_multipartite_graph(3, n);
+    let (nodes, edges) = gen_multi_graph(3, n).unwrap();
     let clusters = get_clusters(&hierarchy, 1, &nodes);
     let mut optimizer = HierarchyOptimizer::new(nodes, edges, hierarchy).unwrap();
     let mut start_crossings = optimizer.count_crossings() as i64;
@@ -291,7 +291,7 @@ mod tests {
       vec![],
     ];
 
-    let (nodes, edges) = generate_multipartite_graph(3, n);
+    let (nodes, edges) = gen_multi_graph(3, n).unwrap();
     let clusters = get_clusters(&hierarchy, 1, &nodes);
     let mut optimizer = HierarchyOptimizer::new(nodes, edges, hierarchy).unwrap();
     let start_crossings = optimizer.count_crossings() as i64;

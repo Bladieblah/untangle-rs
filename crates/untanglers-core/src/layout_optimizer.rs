@@ -112,7 +112,7 @@ mod tests {
   fn test_cooldown() {
     let n = 200;
 
-    let (nodes, edges) = generate_multipartite_graph(7, n);
+    let (nodes, edges) = gen_multi_graph(7, n).unwrap();
     let mut optimizer = LayoutOptimizer::new(nodes, edges).unwrap();
     let start_crossings = optimizer.count_crossings() as i64;
     let end_crossings = timeit("Optimize", || optimizer.cooldown(1., 0.1, 5, 200, 1)).unwrap();
@@ -129,7 +129,7 @@ mod tests {
   fn test_optimize() {
     let n = 200;
 
-    let (nodes, edges) = generate_multipartite_graph(7, n);
+    let (nodes, edges) = gen_multi_graph(7, n).unwrap();
     let mut optimizer = LayoutOptimizer::new(nodes, edges).unwrap();
     let start_crossings = optimizer.count_crossings() as i64;
     let end_crossings = timeit("Optimize", || optimizer.optimize(1., 0.1, 5, 200, 20)).unwrap();

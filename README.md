@@ -1,2 +1,4 @@
 # untangle-rs
-Library that minimises edge crossings in a hierarchical multipartite graph
+Library that minimises edge crossings in a hierarchical multipartite graph.
+
+## Basic layouts
