@@ -6,7 +6,7 @@ use crate::mapping::reorder_nodes;
 use crate::optimizer::Optimizer;
 use crate::optimizer_ops::{impl_optimizer_ops, OptimizerInternalOps, OptimizerOps};
 use crate::reducer::reduce_crossings;
-use crate::utils::validate_layers;
+use crate::utils::{validate_edge_uniqueness, validate_layers};
 
 pub struct LayoutOptimizer<T>
 where
@@ -23,6 +23,7 @@ where
 {
   pub fn new(node_layers: Vec<Vec<T>>, edges: Vec<Vec<(T, T, usize)>>) -> Result<Self, OptimizerError> {
     validate_layers(&node_layers, &edges)?;
+    validate_edge_uniqueness(&edges)?;
 
     let optimizer = Optimizer::new(node_layers, edges);
     Ok(Self { optimizer })
@@ -62,7 +63,7 @@ where
     steps: usize,
     max_iterations: usize,
     layer_index: usize,
-  ) -> Result<i64, OptimizerError> {
+  ) -> Result<usize, OptimizerError> {
     let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
 
     let (new_indices, new_count) = reduce_crossings(
@@ -81,7 +82,7 @@ where
 
     self.optimizer.node_layers[layer_index] = reorder_nodes(&self.optimizer.node_layers[layer_index], &new_indices);
 
-    Ok(new_count)
+    Ok(new_count as usize)
   }
 
   pub fn optimize(
@@ -91,15 +92,14 @@ where
     steps: usize,
     max_iterations: usize,
     passes: usize,
-  ) -> Result<i64, OptimizerError> {
-    let mut crossing_count = 0;
+  ) -> Result<usize, OptimizerError> {
     for _pass in 0..passes {
       for i in 0..self.optimizer.node_layers.len() {
-        crossing_count = self.cooldown(start_temp, end_temp, steps, max_iterations, i)?;
+        self.cooldown(start_temp, end_temp, steps, max_iterations, i)?;
       }
     }
 
-    Ok(crossing_count)
+    Ok(self.count_crossings())
   }
 }
 
@@ -114,14 +114,14 @@ mod tests {
 
     let (nodes, edges) = gen_multi_graph(7, n).unwrap();
     let mut optimizer = LayoutOptimizer::new(nodes, edges).unwrap();
-    let start_crossings = optimizer.count_crossings() as i64;
-    let end_crossings = timeit("Optimize", || optimizer.cooldown(1., 0.1, 5, 200, 1)).unwrap();
+    let start_crossings = optimizer.count_crossings();
+    let end_crossings = timeit("Optimize", || optimizer.cooldown(1., 0.1, 5, 200, 3)).unwrap();
 
     println!("Improved from {} to {}", start_crossings, end_crossings);
     assert!(start_crossings > end_crossings);
     assert!(end_crossings > 0);
 
-    let real_crossings = optimizer.count_layer_crossings(1).unwrap();
+    let real_crossings = optimizer.count_layer_crossings(3).unwrap();
     assert_eq!(end_crossings, real_crossings);
   }
 
@@ -131,7 +131,7 @@ mod tests {
 
     let (nodes, edges) = gen_multi_graph(7, n).unwrap();
     let mut optimizer = LayoutOptimizer::new(nodes, edges).unwrap();
-    let start_crossings = optimizer.count_crossings() as i64;
+    let start_crossings = optimizer.count_crossings();
     let end_crossings = timeit("Optimize", || optimizer.optimize(1., 0.1, 5, 200, 20)).unwrap();
 
     println!("Improved from {} to {}", start_crossings, end_crossings);

@@ -235,6 +235,11 @@ mod tests {
     let swapped_edges = swap_edges(&edges);
     let start_crossings = count_crossings(&nodes_left, &nodes_right, &edges) as i64;
 
+    assert_eq!(
+      start_crossings,
+      count_crossings(&nodes_right, &nodes_left, &swapped_edges) as i64
+    );
+
     let (new_indices, mid_crossings) = reduce_crossings(
       &nodes_left,
       &nodes_right,
@@ -248,10 +253,16 @@ mod tests {
       None,
       None,
     );
-    let new_nodes = reorder_nodes(&nodes_left, &new_indices);
-    let (_, end_crossings) = reduce_crossings(
+
+    let new_nodes_left = reorder_nodes(&nodes_left, &new_indices);
+    assert_eq!(
+      mid_crossings,
+      count_crossings(&new_nodes_left, &nodes_right, &edges) as i64
+    );
+
+    let (new_indices, end_crossings) = reduce_crossings(
       &nodes_right,
-      &new_nodes,
+      &new_nodes_left,
       &swapped_edges,
       None,
       None,
@@ -263,9 +274,15 @@ mod tests {
       None,
     );
 
+    let new_nodes_right = reorder_nodes(&nodes_right, &new_indices);
+
     assert!(mid_crossings < start_crossings, "{mid_crossings} !< {start_crossings}");
     assert!(mid_crossings > 0, "{mid_crossings} < 0");
     assert!(end_crossings < mid_crossings, "{end_crossings} !< {mid_crossings}");
     assert!(end_crossings > 0, "{end_crossings} < 0");
+    assert_eq!(
+      end_crossings,
+      count_crossings(&new_nodes_left, &new_nodes_right, &edges) as i64
+    );
   }
 }

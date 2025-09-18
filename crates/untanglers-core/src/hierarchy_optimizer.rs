@@ -7,7 +7,7 @@ use crate::mapping::reorder_nodes;
 use crate::optimizer::Optimizer;
 use crate::optimizer_ops::{impl_optimizer_ops, OptimizerInternalOps, OptimizerOps};
 use crate::reducer::reduce_crossings;
-use crate::utils::validate_layers;
+use crate::utils::{validate_edge_uniqueness, validate_layers};
 
 pub type Hierarchy = Vec<Vec<Vec<usize>>>;
 
@@ -42,6 +42,7 @@ where
     }
 
     validate_layers(&node_layers, &edges)?;
+    validate_edge_uniqueness(&edges)?;
 
     let optimizer = Optimizer::new(node_layers, edges);
     Ok(Self { optimizer, hierarchy })
@@ -93,7 +94,7 @@ where
     max_iterations: usize,
     layer_index: usize,
     granularity: Option<usize>,
-  ) -> Result<i64, OptimizerError> {
+  ) -> Result<usize, OptimizerError> {
     let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
     let (groups, borders) = groups_and_borders(&self.hierarchy[layer_index], granularity);
 
@@ -122,7 +123,7 @@ where
       }
     }
 
-    Ok(new_count)
+    Ok(new_count as usize)
   }
 
   pub fn optimize(
@@ -132,8 +133,7 @@ where
     steps: usize,
     max_iterations: usize,
     passes: usize,
-  ) -> Result<i64, OptimizerError> {
-    let mut crossing_count = 0;
+  ) -> Result<usize, OptimizerError> {
     for _pass in 0..passes {
       for layer_index in 0..self.optimizer.node_layers.len() {
         for granularity in 0..self.hierarchy[layer_index].len() {
@@ -146,11 +146,11 @@ where
             Some(granularity),
           )?;
         }
-        crossing_count = self.cooldown(start_temp, end_temp, steps, max_iterations, layer_index, None)?;
+        self.cooldown(start_temp, end_temp, steps, max_iterations, layer_index, None)?;
       }
     }
 
-    Ok(crossing_count)
+    Ok(self.count_crossings())
   }
 
   pub fn get_hierarchy(&self) -> Hierarchy {
@@ -221,6 +221,25 @@ mod tests {
       Err(other) => panic!("Unexpected error: {}", other),
       Ok(_) => panic!("Expected an error"),
     }
+
+    let optimizer = HierarchyOptimizer::new(
+      vec![vec![0, 1, 2], vec![3, 4, 5]],
+      vec![vec![(0, 3, 1), (0, 3, 1)]],
+      vec![vec![], vec![]],
+    );
+    match optimizer {
+      Err(OptimizerError::DuplicateEdge {
+        node_a,
+        node_b,
+        layer_index,
+      }) => {
+        assert_eq!(node_a, "0".to_string());
+        assert_eq!(node_b, "3".to_string());
+        assert_eq!(layer_index, 0);
+      }
+      Err(other) => panic!("Unexpected error: {}", other),
+      Ok(_) => panic!("Expected an error"),
+    }
   }
 
   fn get_clusters(hierarchy: &Hierarchy, layer_index: usize, nodes: &[Vec<i32>]) -> HashMap<usize, HashSet<i32>> {
@@ -257,7 +276,7 @@ mod tests {
     let (nodes, edges) = gen_multi_graph(3, n).unwrap();
     let clusters = get_clusters(&hierarchy, 1, &nodes);
     let mut optimizer = HierarchyOptimizer::new(nodes, edges, hierarchy).unwrap();
-    let mut start_crossings = optimizer.count_crossings() as i64;
+    let mut start_crossings = optimizer.count_crossings();
 
     for granularity in [None, Some(0_usize), Some(1_usize), Some(2_usize)] {
       let end_crossings = timeit("Optimize", || optimizer.cooldown(1., 0.1, 5, 200, 1, granularity)).unwrap();
@@ -294,7 +313,7 @@ mod tests {
     let (nodes, edges) = gen_multi_graph(3, n).unwrap();
     let clusters = get_clusters(&hierarchy, 1, &nodes);
     let mut optimizer = HierarchyOptimizer::new(nodes, edges, hierarchy).unwrap();
-    let start_crossings = optimizer.count_crossings() as i64;
+    let start_crossings = optimizer.count_crossings();
 
     let end_crossings = timeit("Optimize", || optimizer.optimize(1., 0.1, 5, 200, 20)).unwrap();
 

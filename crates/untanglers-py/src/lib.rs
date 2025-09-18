@@ -44,7 +44,7 @@ macro_rules! optimizers {
         steps: usize,
         max_iterations: usize,
         layer_index: usize,
-      ) -> PyResult<i64> {
+      ) -> PyResult<usize> {
         self
           .inner
           .cooldown(start_temp, end_temp, steps, max_iterations, layer_index)
@@ -58,7 +58,7 @@ macro_rules! optimizers {
         steps: usize,
         max_iterations: usize,
         passes: usize,
-      ) -> PyResult<i64> {
+      ) -> PyResult<usize> {
         self
           .inner
           .optimize(start_temp, end_temp, steps, max_iterations, passes)
@@ -115,7 +115,7 @@ macro_rules! optimizers {
         max_iterations: usize,
         layer_index: usize,
         granularity: Option<usize>,
-      ) -> PyResult<i64> {
+      ) -> PyResult<usize> {
         self
           .inner
           .cooldown(start_temp, end_temp, steps, max_iterations, layer_index, granularity)
@@ -129,7 +129,7 @@ macro_rules! optimizers {
         steps: usize,
         max_iterations: usize,
         passes: usize,
-      ) -> PyResult<i64> {
+      ) -> PyResult<usize> {
         self
           .inner
           .optimize(start_temp, end_temp, steps, max_iterations, passes)

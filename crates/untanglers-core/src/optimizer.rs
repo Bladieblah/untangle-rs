@@ -3,9 +3,9 @@ use std::hash::Hash;
 
 use itertools::Itertools;
 
-use crate::count_crossings::{_count_crossings, count_crossings};
+use crate::count_crossings::count_crossings;
 use crate::error::OptimizerError;
-use crate::mapping::{map_edges, swap_edges};
+use crate::mapping::swap_edges;
 
 pub struct Optimizer<T>
 where
@@ -30,15 +30,23 @@ where
     }
   }
 
-  pub fn count_layer_crossings(&self, layer_index: usize) -> Result<i64, OptimizerError> {
-    let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
-    let mapped_edges1 = map_edges(&self.node_layers[layer_index], nodes1, edges1);
-    let mut crossing_count = _count_crossings(nodes1.len(), &mapped_edges1) as i64;
+  pub fn count_layer_crossings(&self, layer_index: usize) -> Result<usize, OptimizerError> {
+    let mut crossing_count = 0;
+    if layer_index < self.edges.len() {
+      crossing_count += count_crossings(
+        &self.node_layers[layer_index],
+        &self.node_layers[layer_index + 1],
+        &self.edges[layer_index],
+      );
 
-    if let (Some(nodes2), Some(edges2)) = (nodes2, edges2) {
-      let mapped_edges2 = map_edges(&self.node_layers[layer_index], nodes2, edges2);
-      crossing_count += _count_crossings(nodes2.len(), &mapped_edges2) as i64;
-    };
+      if layer_index > 0 {
+        crossing_count += count_crossings(
+          &self.node_layers[layer_index - 1],
+          &self.node_layers[layer_index],
+          &self.edges[layer_index - 1],
+        );
+      }
+    }
 
     Ok(crossing_count)
   }

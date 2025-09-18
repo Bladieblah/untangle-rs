@@ -24,6 +24,13 @@ pub enum OptimizerError {
   #[error("expected n-1 edge layers for n node layers, got E={edges} vs N={layers}")]
   EdgeLayerMismatch { edges: usize, layers: usize },
 
+  #[error("Duplicate edge in layer {layer_index}: ({node_a}, {node_b})")]
+  DuplicateEdge {
+    node_a: String,
+    node_b: String,
+    layer_index: usize,
+  },
+
   #[error("Edges contains missing node {node_name:?} at layer {layer_index}")]
   MissingNode { node_name: String, layer_index: usize },
 
