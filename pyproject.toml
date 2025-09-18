@@ -5,7 +5,7 @@ description = "Library that minimises edge crossings in a hierarchical multipart
 authors = [
     { name = "Matthijs Wesseling", email = "matthijswesseling@gmail.com"}
 ]
-license = {text = "MIT"}
+license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.11, <4"
 dependencies = [
