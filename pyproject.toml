@@ -3,7 +3,7 @@ name = "untangle-rs"
 dynamic = ["version"]
 description = "Library that minimises edge crossings in a hierarchical multipartite graph"
 authors = [
-    {name = "Matthijs Wesseling",email = "matthijswesseling@gmail.com"}
+    { name = "Matthijs Wesseling", email = "matthijswesseling@gmail.com"}
 ]
 license = {text = "MIT"}
 readme = "README.md"
@@ -12,14 +12,33 @@ dependencies = [
     "maturin (>=1.9.1,<2.0.0)"
 ]
 classifiers = [
-    "Programming Language :: Rust",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: Implementation :: PyPy",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Bladieblah/untangle-rs"
+Repository = "https://github.com/Bladieblah/untangle-rs.git"
+"Bug Tracker" = "https://github.com/Bladieblah/untangle-rs/issues"
 
 [tool.maturin]
 manifest-path = "crates/untanglers-py/Cargo.toml"
-# features = ["pyo3/extension-module"]
 
 [tool.poetry]
 version = "0.0.0"
