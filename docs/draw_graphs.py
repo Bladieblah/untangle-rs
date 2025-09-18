@@ -1,9 +1,13 @@
+from collections import defaultdict
 from pathlib import Path
+from re import L
 from typing import TypeVar
-from untanglers import LayoutOptimizerInt, generate_multipartite_graph
+from untanglers import HierarchyOptimizerInt, LayoutOptimizerInt, generate_multipartite_graph
 
 import networkx as nx
 import matplotlib.pyplot as plt
+
+from numpy import indices
 
 T = TypeVar("T")
 
@@ -22,6 +26,21 @@ def nodes_to_pos(nodes: list[list[T]]) -> dict[T, tuple[float, float]]:
       pos[n] = (i, (j - offset) * (max_len / len(ns))**0.7)
 
   return pos
+
+
+def draw_networkx(graph, pos, **kwargs):
+  if "node_shape" in kwargs and isinstance(kwargs["node_shape"], list):
+    shapes = defaultdict(list)
+    colors = kwargs["node_color"]
+    for i, shape in enumerate(kwargs["node_shape"]):
+      shapes[shape].append(i)
+    for shape, indices in shapes.items():
+      nodes = [list(graph.nodes)[i] for i in indices]
+      kwargs["node_color"] = [colors[i] for i in indices]
+      kwargs["node_shape"] = shape
+      draw_networkx(graph, pos, nodelist=nodes, **kwargs)
+  else:
+    nx.draw_networkx(graph, pos, **kwargs)
 
 
 def draw_example(nodes, edges, optimize, extra_styles = None):
@@ -44,10 +63,12 @@ def draw_example(nodes, edges, optimize, extra_styles = None):
   if extra_styles is not None:
     styles.update(extra_styles)
 
-  nx.draw_networkx(graph, nodes_to_pos(nodes), ax=axs[0], **styles)
+  draw_networkx(graph, nodes_to_pos(nodes), ax=axs[0], **styles)
+  nodes, before, after = optimize()
+  axs[0].set_title(f"Before: {before} edge crossings")
 
-  nodes = optimize()
-  nx.draw_networkx(graph, nodes_to_pos(nodes), ax=axs[1], **styles)
+  draw_networkx(graph, nodes_to_pos(nodes), ax=axs[1], **styles)
+  axs[1].set_title(f"After: {after} edge crossings")
 
   [ax.invert_yaxis() for ax in axs]
 
@@ -62,8 +83,9 @@ def draw_basic_example():
 
   def optimize():
     opt = LayoutOptimizerInt(nodes, edges)
+    before = opt.count_crossings()
     opt.optimize(1, 1e-3, 2, 20, 2)
-    return opt.get_nodes()
+    return opt.get_nodes(), before, opt.count_crossings()
   
   fig = draw_example(nodes, edges, optimize)
 
@@ -74,13 +96,13 @@ def draw_complex_example():
 
   def optimize():
     opt = LayoutOptimizerInt(nodes, edges)
+    before = opt.count_crossings()
     opt.optimize(10, 0.1, 5, 2000, 10)
-    return opt.get_nodes()
+    return opt.get_nodes(), before, opt.count_crossings()
   
   styles = {
     "node_size": 50,
     "font_size": 3,
-    # "with_labels": False,
     "linewidths": 1,
   }
   fig = draw_example(nodes, edges, optimize, styles)
@@ -88,6 +110,47 @@ def draw_complex_example():
   fig.savefig(str(images / "complex.png"), dpi=600)
 
 
+def draw_hierarchy_example():
+  nodes, edges = generate_multipartite_graph([20, 40, 30, 35, 10])
+  hierarchy = [
+    [[4,5,6,5], [9, 11]],
+    [[7, 20, 13], [27, 13]],
+    [[8, 9, 6, 7], [17, 13]],
+    [[8, 5, 9, 6, 7], [13, 15, 7]],
+    [[5,5], [10]],
+  ]
+
+  colors = []
+  for layer in hierarchy:
+    for i, group in enumerate(layer[0]):
+      colors += [f"C{i}"] * group
+
+  shapes = []
+  for layer in hierarchy:
+    for i, group in enumerate(layer[1]):
+      shapes += ["o^s"[i]] * group
+
+  def optimize():
+    opt = HierarchyOptimizerInt(nodes, edges, hierarchy)
+    before = opt.count_crossings()
+    opt.optimize(100, 0.1, 5, 1000, 20)
+    return opt.get_nodes(), before, opt.count_crossings()
+  
+  styles = {
+    "node_size": 50,
+    "font_size": 3,
+    "linewidths": 1,
+    "node_color": colors,
+    "node_shape": shapes,
+    "edgecolors": None
+  }
+  fig = draw_example(nodes, edges, optimize, styles)
+
+  fig.savefig(str(images / "hierarchy.png"), dpi=600)
+
+
 if __name__ == "__main__":
   draw_basic_example()
   draw_complex_example()
+
+  draw_hierarchy_example()
