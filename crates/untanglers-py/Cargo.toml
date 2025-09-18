@@ -11,5 +11,5 @@ crate-type = ["cdylib"]
 useless_conversion = "allow"
 
 [dependencies]
-pyo3 = { version = "0.22", features = ["extension-module"] }
+pyo3 = { version = "0.22", features = ["extension-module", "abi3", "abi3-py39"] }
 untanglers_core = { package = "untanglers-core", path = "../untanglers-core" }

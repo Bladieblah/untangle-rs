@@ -4,5 +4,4 @@ members = [
   "crates/untanglers-py",
 ]
 
-# Optional: share versions/deps here with [workspace.package]/[workspace.dependencies]
 resolver = "2"
