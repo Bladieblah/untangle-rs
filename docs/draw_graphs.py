@@ -84,8 +84,8 @@ def draw_basic_example():
   def optimize():
     opt = LayoutOptimizerInt(nodes, edges)
     before = opt.count_crossings()
-    opt.optimize(1, 1e-3, 2, 20, 2)
-    return opt.get_nodes(), before, opt.count_crossings()
+    after = opt.optimize(1, 1e-3, 2, 20, 2)
+    return opt.get_nodes(), before, after
   
   fig = draw_example(nodes, edges, optimize)
 
@@ -97,8 +97,8 @@ def draw_complex_example():
   def optimize():
     opt = LayoutOptimizerInt(nodes, edges)
     before = opt.count_crossings()
-    opt.optimize(10, 0.1, 5, 2000, 10)
-    return opt.get_nodes(), before, opt.count_crossings()
+    after = opt.optimize(10, 0.1, 5, 2000, 10)
+    return opt.get_nodes(), before, after
   
   styles = {
     "node_size": 50,
@@ -133,8 +133,8 @@ def draw_hierarchy_example():
   def optimize():
     opt = HierarchyOptimizerInt(nodes, edges, hierarchy)
     before = opt.count_crossings()
-    opt.optimize(100, 0.1, 5, 1000, 20)
-    return opt.get_nodes(), before, opt.count_crossings()
+    after = opt.optimize(100, 0.1, 5, 1000, 20)
+    return opt.get_nodes(), before, after
   
   styles = {
     "node_size": 50,
