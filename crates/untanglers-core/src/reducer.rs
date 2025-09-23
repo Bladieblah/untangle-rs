@@ -20,6 +20,11 @@ pub fn swap_nodes(
   borders: &Option<Vec<usize>>,
 ) -> (Vec<usize>, i64) {
   let mut new_nodes = nodes.clone();
+
+  if swappable_count == 0 {
+    return (new_nodes, crossing_count);
+  }
+
   let indices = match borders {
     None => (0..swappable_count - 1).collect_vec(),
     Some(b) => (0..swappable_count - 1).filter(|i| !b.contains(i)).collect_vec(),
@@ -284,5 +289,24 @@ mod tests {
       end_crossings,
       count_crossings(&new_nodes_left, &new_nodes_right, &edges) as i64
     );
+  }
+
+  #[test]
+  fn test_empty_nodes() {
+    let nodes_left: Vec<u8> = vec![0, 1, 2, 10];
+    let nodes_right: Vec<u8> = vec![];
+    let edges: Vec<(u8, u8, usize)> = vec![];
+
+    assert_eq!(count_crossings(&nodes_left, &nodes_right, &edges), 0);
+
+    let (_, expected_count) =
+      reduce_crossings(&nodes_left, &nodes_right, &edges, None, None, 10, 0., 0., 1, None, None);
+
+    assert_eq!(expected_count, 0);
+
+    let (_, expected_count) =
+      reduce_crossings(&nodes_right, &nodes_left, &edges, None, None, 10, 0., 0., 1, None, None);
+
+    assert_eq!(expected_count, 0);
   }
 }

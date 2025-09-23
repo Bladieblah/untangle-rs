@@ -22,6 +22,10 @@ pub fn get_pairwise_matrix(
   static_count: usize,
   edges: &Vec<(usize, usize, usize)>,
 ) -> Vec<f64> {
+  if (static_count) == 0 {
+    return vec![0.; swappable_count * swappable_count];
+  }
+
   let mut weights: Vec<f64> = vec![0.; swappable_count * static_count];
   for (swappable_id, static_id, weight) in edges {
     weights[static_id * swappable_count + swappable_id] = *weight as f64;
