@@ -4,7 +4,7 @@ use thiserror::Error;
 pub enum OptimizerError {
   #[error("expected one hierarchy for each node layer, got {hierarchy} vs {layers}")]
   HierarchyMismatch { hierarchy: usize, layers: usize },
-  
+
   #[error("found a group with size 0 in the hierarchy at layer {layer_index} level {granularity}")]
   EmptyGroup { layer_index: usize, granularity: usize },
 

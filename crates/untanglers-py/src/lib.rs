@@ -2,12 +2,12 @@ mod threading;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use std::sync::{Arc, Mutex};
 use untanglers_core as core;
 use untanglers_core::error::OptimizerError;
 use untanglers_core::hierarchy_optimizer::Hierarchy;
 use untanglers_core::optimizer_ops::OptimizerOps;
 use untanglers_core::utils;
-use std::sync::{Arc, Mutex};
 
 use crate::threading::run_in_thread;
 
@@ -27,7 +27,9 @@ macro_rules! optimizers {
       #[new]
       pub fn layout_optimizer_new(nodes_left: Vec<Vec<$ty>>, edges: Vec<Vec<($ty, $ty, usize)>>) -> PyResult<Self> {
         let inner = core::layout_optimizer::LayoutOptimizer::<$ty>::new(nodes_left, edges).map_err(to_pyerr)?;
-        Ok(Self { inner: Arc::new(Mutex::new(inner)) })
+        Ok(Self {
+          inner: Arc::new(Mutex::new(inner)),
+        })
       }
 
       pub fn swap_nodes(&mut self, temperature: f64, max_iterations: usize, layer_index: usize) -> PyResult<i64> {
@@ -97,9 +99,11 @@ macro_rules! optimizers {
         edges: Vec<Vec<($ty, $ty, usize)>>,
         hierarchy: Hierarchy,
       ) -> PyResult<Self> {
-        let inner = core::hierarchy_optimizer::HierarchyOptimizer::<$ty>::new(nodes_left, edges, hierarchy)
-          .map_err(to_pyerr)?;
-        Ok(Self { inner: Arc::new(Mutex::new(inner)) })
+        let inner =
+          core::hierarchy_optimizer::HierarchyOptimizer::<$ty>::new(nodes_left, edges, hierarchy).map_err(to_pyerr)?;
+        Ok(Self {
+          inner: Arc::new(Mutex::new(inner)),
+        })
       }
 
       #[pyo3(signature = (temperature, max_iterations, layer_index, granularity))]

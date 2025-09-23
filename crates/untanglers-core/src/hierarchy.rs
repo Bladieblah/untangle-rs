@@ -134,7 +134,10 @@ pub fn validate_hierarchy(
 
     for &group_size in &hierarchy[granularity] {
       if group_size == 0 {
-        return Err(OptimizerError::EmptyGroup { layer_index, granularity });
+        return Err(OptimizerError::EmptyGroup {
+          layer_index,
+          granularity,
+        });
       }
     }
 
