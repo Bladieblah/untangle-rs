@@ -132,6 +132,15 @@ pub fn validate_hierarchy(
   for granularity in 0..hierarchy.len() {
     let size: usize = hierarchy[granularity].iter().sum();
 
+    for &group_size in &hierarchy[granularity] {
+      if group_size == 0 {
+        return Err(OptimizerError::EmptyGroup {
+          layer_index,
+          granularity,
+        });
+      }
+    }
+
     if size != node_count {
       return Err(OptimizerError::HierarchySizeMismatch {
         layer_index,

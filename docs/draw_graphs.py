@@ -1,13 +1,10 @@
 from collections import defaultdict
 from pathlib import Path
-from re import L
 from typing import TypeVar
 from untanglers import HierarchyOptimizerInt, LayoutOptimizerInt, generate_multipartite_graph
 
 import networkx as nx
 import matplotlib.pyplot as plt
-
-from numpy import indices
 
 T = TypeVar("T")
 
@@ -23,7 +20,7 @@ def nodes_to_pos(nodes: list[list[T]]) -> dict[T, tuple[float, float]]:
     size = len(ns)
     offset = (size - 1) / 2
     for j, n in enumerate(ns):
-      pos[n] = (i, (j - offset) * (max_len / len(ns))**0.7)
+      pos[n] = (i, (j - offset) * (max_len / len(ns)) ** 0.7)
 
   return pos
 
@@ -43,7 +40,7 @@ def draw_networkx(graph, pos, **kwargs):
     nx.draw_networkx(graph, pos, **kwargs)
 
 
-def draw_example(nodes, edges, optimize, extra_styles = None):
+def draw_example(nodes, edges, optimize, extra_styles=None):
   graph = nx.DiGraph()
   graph.add_nodes_from([(n, {"label": str(n)}) for ns in nodes for n in ns])
   graph.add_edges_from((l, r, {"weight": w}) for es in edges for (l, r, w) in es)
@@ -77,7 +74,6 @@ def draw_example(nodes, edges, optimize, extra_styles = None):
   return fig
 
 
-
 def draw_basic_example():
   nodes, edges = generate_multipartite_graph([2, 4, 3])
 
@@ -86,10 +82,11 @@ def draw_basic_example():
     before = opt.count_crossings()
     after = opt.optimize(1, 1e-3, 2, 20, 2)
     return opt.get_nodes(), before, after
-  
+
   fig = draw_example(nodes, edges, optimize)
 
   fig.savefig(str(images / "basic.png"), dpi=600)
+
 
 def draw_complex_example():
   nodes, edges = generate_multipartite_graph([20, 40, 30, 35, 10])
@@ -99,7 +96,7 @@ def draw_complex_example():
     before = opt.count_crossings()
     after = opt.optimize(10, 0.1, 5, 2000, 10)
     return opt.get_nodes(), before, after
-  
+
   styles = {
     "node_size": 50,
     "font_size": 3,
@@ -113,11 +110,11 @@ def draw_complex_example():
 def draw_hierarchy_example():
   nodes, edges = generate_multipartite_graph([20, 40, 30, 35, 10])
   hierarchy = [
-    [[4,5,6,5], [9, 11]],
+    [[4, 5, 6, 5], [9, 11]],
     [[7, 20, 13], [27, 13]],
     [[8, 9, 6, 7], [17, 13]],
     [[8, 5, 9, 6, 7], [13, 15, 7]],
-    [[5,5], [10]],
+    [[5, 5], [10]],
   ]
 
   colors = []
@@ -135,14 +132,14 @@ def draw_hierarchy_example():
     before = opt.count_crossings()
     after = opt.optimize(100, 0.1, 5, 1000, 20)
     return opt.get_nodes(), before, after
-  
+
   styles = {
     "node_size": 50,
     "font_size": 3,
     "linewidths": 1,
     "node_color": colors,
     "node_shape": shapes,
-    "edgecolors": None
+    "edgecolors": None,
   }
   fig = draw_example(nodes, edges, optimize, styles)
 

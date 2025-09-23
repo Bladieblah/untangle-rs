@@ -54,7 +54,7 @@ where
     max_iterations: usize,
     layer_index: usize,
     granularity: Option<usize>,
-  ) -> Result<i64, OptimizerError> {
+  ) -> Result<usize, OptimizerError> {
     let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
     let (groups, borders) = groups_and_borders(&self.hierarchy[layer_index], granularity);
 
@@ -83,7 +83,7 @@ where
       }
     }
 
-    Ok(new_count)
+    Ok(new_count as usize)
   }
 
   pub fn cooldown(
@@ -257,6 +257,42 @@ mod tests {
     }
 
     clusters
+  }
+
+  #[test]
+  fn test_swap_hierarchy() {
+    let n = 100;
+
+    let hierarchy: Hierarchy = vec![
+      vec![],
+      vec![
+        vec![10, 13, 7, 3, 2, 14, 20, 15, 16],
+        vec![30, 19, 35, 16],
+        vec![49, 51],
+      ],
+      vec![],
+    ];
+
+    let (nodes, edges) = gen_multi_graph(3, n).unwrap();
+    let clusters = get_clusters(&hierarchy, 1, &nodes);
+    let mut optimizer = HierarchyOptimizer::new(nodes, edges, hierarchy).unwrap();
+    let mut start_crossings = optimizer.count_crossings();
+
+    for granularity in [None, Some(0_usize), Some(1_usize), Some(2_usize)] {
+      let end_crossings = timeit("Optimize", || optimizer.swap_nodes(1., 200, 1, granularity)).unwrap();
+
+      assert_eq!(
+        get_clusters(&optimizer.get_hierarchy(), 1, &optimizer.get_nodes()),
+        clusters
+      );
+
+      assert!(start_crossings >= end_crossings, "{start_crossings} < {end_crossings}");
+      assert!(end_crossings > 0);
+
+      let real_crossings = optimizer.count_layer_crossings(1).unwrap();
+      assert_eq!(end_crossings, real_crossings);
+      start_crossings = end_crossings;
+    }
   }
 
   #[test]

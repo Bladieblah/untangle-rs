@@ -34,7 +34,7 @@ where
     temperature: f64,
     max_iterations: usize,
     layer_index: usize,
-  ) -> Result<i64, OptimizerError> {
+  ) -> Result<usize, OptimizerError> {
     let (nodes1, edges1, nodes2, edges2) = self.get_adjacent_layers(layer_index)?;
 
     let (new_indices, new_count) = reduce_crossings(
@@ -53,7 +53,7 @@ where
 
     self.optimizer.node_layers[layer_index] = reorder_nodes(&self.optimizer.node_layers[layer_index], &new_indices);
 
-    Ok(new_count)
+    Ok(new_count as usize)
   }
 
   pub fn cooldown(
@@ -107,6 +107,22 @@ where
 mod tests {
   use super::*;
   use crate::utils::*;
+
+  #[test]
+  fn test_swap_nodes() {
+    let n = 200;
+
+    let (nodes, edges) = gen_multi_graph(7, n).unwrap();
+    let mut optimizer = LayoutOptimizer::new(nodes, edges).unwrap();
+    let start_crossings = optimizer.count_crossings();
+    let end_crossings = timeit("Optimize", || optimizer.swap_nodes(1., 200, 3)).unwrap();
+
+    assert!(start_crossings > end_crossings);
+    assert!(end_crossings > 0);
+
+    let real_crossings = optimizer.count_layer_crossings(3).unwrap();
+    assert_eq!(end_crossings, real_crossings);
+  }
 
   #[test]
   fn test_cooldown() {
