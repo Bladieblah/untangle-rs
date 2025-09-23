@@ -1,3 +1,8 @@
+[![PyPI version](https://img.shields.io/pypi/v/untangle-rs.svg)](https://pypi.org/project/untangle-rs/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/untangle-rs.svg)](https://pypi.org/project/untangle-rs/)
+[![Build](https://github.com/Bladieblah/untangle-rs/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/Bladieblah/untangle-rs/actions)
+[![Coverage](https://codecov.io/gh/<your-username>/<your-repo>/branch/main/graph/badge.svg)](https://codecov.io/gh/Bladieblah/untangle-rs)
+
 # untangle-rs
 Library that minimises edge crossings in weighted multipartite graphs, with support for respecting node hierarchy. It uses a simple metropolis-hastings algorithm that iteratitely swaps neighboring nodes in order to minimize the number of crossings. It is unlikely to find a global minimum but does converge to optimal solutions.
 
