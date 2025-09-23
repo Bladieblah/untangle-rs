@@ -54,7 +54,7 @@ hierarchy = [
   [[8, 9, 6, 7], [17, 13]],
 ]
 
-optimizer = HierarchyOptimizerInt(nodes, edges)
+optimizer = HierarchyOptimizerInt(nodes, edges, hierarchy)
 new_crossings = optimizer.optimize(...)
 ```
 

@@ -1,13 +1,10 @@
 from collections import defaultdict
 from pathlib import Path
-from re import L
 from typing import TypeVar
 from untanglers import HierarchyOptimizerInt, LayoutOptimizerInt, generate_multipartite_graph
 
 import networkx as nx
 import matplotlib.pyplot as plt
-
-from numpy import indices
 
 T = TypeVar("T")
 
