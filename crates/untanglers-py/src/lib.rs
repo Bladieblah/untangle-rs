@@ -32,7 +32,7 @@ macro_rules! optimizers {
         })
       }
 
-      pub fn swap_nodes(&mut self, temperature: f64, max_iterations: usize, layer_index: usize) -> PyResult<i64> {
+      pub fn swap_nodes(&mut self, temperature: f64, max_iterations: usize, layer_index: usize) -> PyResult<usize> {
         let inner = Arc::clone(&self.inner);
         Python::with_gil(|py| {
           run_in_thread(py, move || {
@@ -113,7 +113,7 @@ macro_rules! optimizers {
         max_iterations: usize,
         layer_index: usize,
         granularity: Option<usize>,
-      ) -> PyResult<i64> {
+      ) -> PyResult<usize> {
         let inner = Arc::clone(&self.inner);
         Python::with_gil(|py| {
           run_in_thread(py, move || {

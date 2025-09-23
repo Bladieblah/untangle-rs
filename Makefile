@@ -17,6 +17,9 @@ test-python: release ## Run the tests
 
 test: test-rust test-python
 
+coverage: ## Print a summarised coverage report to the console. Uses jq for formatting
+	cargo llvm-cov --all-features --package untanglers-core --json --summary-only --lib | jq
+
 benchmark: release ## Run a benchmark to compare the original python implementation with the optimised rust implementation
 	cargo run -p untanglers-core --release --bin benchmark
 	python -m tests.benchmark
