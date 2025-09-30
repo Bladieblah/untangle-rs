@@ -1,6 +1,6 @@
 [package]
 name = "untanglers-py"             # Rust crate name (can differ from Python module)
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 
 [lib]

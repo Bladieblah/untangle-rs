@@ -44,6 +44,7 @@ macro_rules! optimizers {
 
       pub fn cooldown(
         &mut self,
+        py: Python<'_>,
         start_temp: f64,
         end_temp: f64,
         steps: usize,
@@ -51,16 +52,15 @@ macro_rules! optimizers {
         layer_index: usize,
       ) -> PyResult<usize> {
         let inner = Arc::clone(&self.inner);
-        Python::with_gil(|py| {
-          run_in_thread(py, move || {
-            let mut guard = inner.lock().unwrap();
-            guard.cooldown(start_temp, end_temp, steps, max_iterations, layer_index)
-          })
+        run_in_thread(py, move || {
+          let mut guard = inner.lock().unwrap();
+          guard.cooldown(start_temp, end_temp, steps, max_iterations, layer_index)
         })
       }
 
       pub fn optimize(
         &mut self,
+        py: Python<'_>,
         start_temp: f64,
         end_temp: f64,
         steps: usize,
@@ -68,11 +68,9 @@ macro_rules! optimizers {
         passes: usize,
       ) -> PyResult<usize> {
         let inner = Arc::clone(&self.inner);
-        Python::with_gil(|py| {
-          run_in_thread(py, move || {
-            let mut guard = inner.lock().unwrap();
-            guard.optimize(start_temp, end_temp, steps, max_iterations, passes)
-          })
+        run_in_thread(py, move || {
+          let mut guard = inner.lock().unwrap();
+          guard.optimize(start_temp, end_temp, steps, max_iterations, passes)
         })
       }
 
@@ -109,23 +107,24 @@ macro_rules! optimizers {
       #[pyo3(signature = (temperature, max_iterations, layer_index, granularity))]
       pub fn swap_nodes(
         &mut self,
+        py: Python<'_>,
         temperature: f64,
         max_iterations: usize,
         layer_index: usize,
         granularity: Option<usize>,
       ) -> PyResult<usize> {
         let inner = Arc::clone(&self.inner);
-        Python::with_gil(|py| {
-          run_in_thread(py, move || {
-            let mut guard = inner.lock().unwrap();
-            guard.swap_nodes(temperature, max_iterations, layer_index, granularity)
-          })
+        run_in_thread(py, move || {
+          let mut guard = inner.lock().unwrap();
+          guard.swap_nodes(temperature, max_iterations, layer_index, granularity)
         })
       }
 
+      #[allow(clippy::too_many_arguments)]
       #[pyo3(signature = (start_temp, end_temp, steps, max_iterations, layer_index, granularity))]
       pub fn cooldown(
         &mut self,
+        py: Python<'_>,
         start_temp: f64,
         end_temp: f64,
         steps: usize,
@@ -134,16 +133,15 @@ macro_rules! optimizers {
         granularity: Option<usize>,
       ) -> PyResult<usize> {
         let inner = Arc::clone(&self.inner);
-        Python::with_gil(|py| {
-          run_in_thread(py, move || {
-            let mut guard = inner.lock().unwrap();
-            guard.cooldown(start_temp, end_temp, steps, max_iterations, layer_index, granularity)
-          })
+        run_in_thread(py, move || {
+          let mut guard = inner.lock().unwrap();
+          guard.cooldown(start_temp, end_temp, steps, max_iterations, layer_index, granularity)
         })
       }
 
       pub fn optimize(
         &mut self,
+        py: Python<'_>,
         start_temp: f64,
         end_temp: f64,
         steps: usize,
@@ -151,11 +149,9 @@ macro_rules! optimizers {
         passes: usize,
       ) -> PyResult<usize> {
         let inner = Arc::clone(&self.inner);
-        Python::with_gil(|py| {
-          run_in_thread(py, move || {
-            let mut guard = inner.lock().unwrap();
-            guard.optimize(start_temp, end_temp, steps, max_iterations, passes)
-          })
+        run_in_thread(py, move || {
+          let mut guard = inner.lock().unwrap();
+          guard.optimize(start_temp, end_temp, steps, max_iterations, passes)
         })
       }
 
