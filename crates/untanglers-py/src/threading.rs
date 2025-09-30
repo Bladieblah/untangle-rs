@@ -1,6 +1,5 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use std::thread;
 use std::time::Duration;
 
 /// Run a long-running Rust function in a background thread,
@@ -11,14 +10,18 @@ where
   T: Send + 'static,
   E: Send + 'static + std::fmt::Display,
 {
-  let handle = thread::spawn(f);
+  let handle = std::thread::spawn(f);
 
   loop {
     if handle.is_finished() {
       break;
     }
-    py.check_signals()?; // raises KeyboardInterrupt if SIGINT
-    thread::sleep(Duration::from_millis(100));
+
+    // reacquire GIL just for signals
+    Python::with_gil(|py| py.check_signals())?;
+
+    // release GIL while we wait
+    py.allow_threads(|| std::thread::sleep(Duration::from_millis(200)));
   }
 
   handle
